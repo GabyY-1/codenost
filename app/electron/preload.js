@@ -47,7 +47,8 @@ contextBridge.exposeInMainWorld("codenost", {
 
   preview: {
     start: (projectPath) => ipcRenderer.invoke("preview:start", projectPath),
-    stop: () => ipcRenderer.invoke("preview:stop")
+    stop: () => ipcRenderer.invoke("preview:stop"),
+    openWindow: (url) => ipcRenderer.invoke("preview:open-window", url)
   },
 
   settings: {
