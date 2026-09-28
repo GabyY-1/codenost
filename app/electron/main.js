@@ -70,6 +70,14 @@ function saveRecent(items) {
   writeJson(dataFile("recent-projects.json"), items.slice(0, 30));
 }
 
+function readHiddenCloudProjects() {
+  return new Set(readJson(dataFile("hidden-cloud-projects.json"), []) || []);
+}
+
+function saveHiddenCloudProjects(ids) {
+  writeJson(dataFile("hidden-cloud-projects.json"), [...ids]);
+}
+
 function rememberProject(project) {
   const recent = readRecent().filter(item => item.path !== project.path);
   recent.unshift({
@@ -311,7 +319,31 @@ app.whenReady().then(async () => {
     return { ok: true };
   });
 
-  ipcMain.handle("projects:list", () => readRecent());
+  ipcMain.handle("projects:list", async () => {
+    const local = readRecent();
+    try {
+      const hidden = readHiddenCloudProjects();
+      const cloud = (await supabaseService.listCloudProjects())
+        .filter(project => !hidden.has(project.id))
+        .filter(project => !local.some(item => {
+          try {
+            const cfg = readJson(path.join(item.path, ".pcn"), {});
+            return cfg?.cloud?.projectId === project.id;
+          } catch {
+            return false;
+          }
+        }))
+        .map(project => ({
+          path: "cloud://" + project.id,
+          name: project.name,
+          type: project.type,
+          openedAt: project.openedAt
+        }));
+      return [...local, ...cloud];
+    } catch {
+      return local;
+    }
+  });
   ipcMain.handle("projects:choose-location", async () => {
     const result = await dialog.showOpenDialog(mainWindow, { properties: ["openDirectory", "createDirectory"] });
     return result.canceled ? null : result.filePaths[0];
@@ -325,8 +357,27 @@ app.whenReady().then(async () => {
   ipcMain.handle("projects:clone-github", async (_event, payload) => {
     return rememberProject(await cloneGithubProject(payload));
   });
-  ipcMain.handle("projects:open", (_event, projectPath) => rememberProject(openProject(projectPath)));
+  ipcMain.handle("projects:open", async (_event, projectPath) => {
+    if (String(projectPath).startsWith("cloud://")) {
+      const projectId = String(projectPath).slice("cloud://".length);
+      const downloaded = await supabaseService.downloadProject(
+        projectId,
+        path.join(os.homedir(), "CodeNost")
+      );
+      const hidden = readHiddenCloudProjects();
+      hidden.delete(projectId);
+      saveHiddenCloudProjects(hidden);
+      return rememberProject(downloaded);
+    }
+    return rememberProject(openProject(projectPath));
+  });
   ipcMain.handle("projects:remove-recent", (_event, projectPath) => {
+    if (String(projectPath).startsWith("cloud://")) {
+      const hidden = readHiddenCloudProjects();
+      hidden.add(String(projectPath).slice("cloud://".length));
+      saveHiddenCloudProjects(hidden);
+      return true;
+    }
     saveRecent(readRecent().filter(item => item.path !== projectPath));
     return true;
   });
