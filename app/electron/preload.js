@@ -63,6 +63,12 @@ contextBridge.exposeInMainWorld("codenost", {
     resolveConflict: (payload) => ipcRenderer.invoke("cloud:resolve-conflict", payload)
   },
 
+  ai: {
+    ask: (payload) => ipcRenderer.invoke("ai:ask", payload),
+    threads: (projectId) => ipcRenderer.invoke("ai:threads", projectId),
+    messages: (threadId) => ipcRenderer.invoke("ai:messages", threadId)
+  },
+
   settings: {
     read: () => ipcRenderer.invoke("settings:read"),
     write: (settings) => ipcRenderer.invoke("settings:write", settings)
