@@ -292,7 +292,12 @@ app.whenReady().then(() => {
     try { fs.rmSync(dataFile("session.json"), { force: true }); } catch {}
     return true;
   });
-  ipcMain.handle("auth:open-signup", () => shell.openExternal(process.env.CODENOST_SIGNUP_URL || "https://gabyy-1.github.io/codenost/inscription.html"));
+  ipcMain.handle("auth:open-signup", () => {
+    const url = process.env.CODENOST_SIGNUP_URL;
+    if (!url) return { ok: false, error: "Aucune page d'inscription CodeNost n'est configurée." };
+    shell.openExternal(url);
+    return { ok: true };
+  });
 
   ipcMain.handle("projects:list", () => readRecent());
   ipcMain.handle("projects:choose-location", async () => {
