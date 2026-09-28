@@ -1,0 +1,36 @@
+{
+  "name": "codenost",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeNost desktop IDE",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check src/js/app.js && node --check src/js/editor.js && node --check src/js/projects.js && node --check src/js/ui.js",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.codenost.desktop",
+    "productName": "CodeNost",
+    "files": ["electron/**/*", "src/**/*", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    }
+  }
+}
