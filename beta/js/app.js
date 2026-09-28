@@ -77,13 +77,16 @@
     });
 
     document.getElementById("githubLogin").addEventListener("click", async () => {
-      const status = await window.codenost.auth.status();
       const message = document.getElementById("authMessage");
-      if (!status.configured) {
-        message.textContent = "La connexion GitHub nécessite le backend d'authentification CodeNost, qui n'est pas encore configuré.";
-        return;
+      message.textContent = "Redirection vers GitHub…";
+      try {
+        const result = await window.codenost.auth.githubLogin();
+        if (!result?.ok) {
+          message.textContent = result?.error || "Connexion GitHub impossible.";
+        }
+      } catch (error) {
+        message.textContent = error.message || String(error);
       }
-      message.textContent = "Le flux GitHub desktop sera activé avec le backend d'authentification.";
     });
 
     document.getElementById("openSignup").addEventListener("click", () => window.codenost.auth.openSignup());
