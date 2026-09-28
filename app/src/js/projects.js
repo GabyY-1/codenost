@@ -218,6 +218,32 @@
     }
   }
 
+  async function importGithub() {
+    const url = await window.CodeNostUI.promptText({
+      title: "Importer depuis GitHub",
+      label: "URL du dépôt GitHub",
+      confirm: "Continuer"
+    });
+    if (!url) return;
+
+    const location = await window.codenost.projects.chooseLocation();
+    if (!location) return;
+
+    try {
+      window.CodeNostUI.notify("Clonage du dépôt GitHub…");
+      const project = await window.codenost.projects.cloneGithub({
+        url,
+        location,
+        cloud: true
+      });
+      await refresh();
+      await state.onOpen?.(project);
+      window.CodeNostUI.notify("Projet GitHub importé.", "success");
+    } catch (error) {
+      window.CodeNostUI.notify(error.message || String(error), "error");
+    }
+  }
+
   async function open(projectPath) {
     try {
       const project = await window.codenost.projects.open(projectPath);
@@ -233,6 +259,7 @@
     document.getElementById("createProjectButton").addEventListener("click", () => openWizard("empty"));
     document.getElementById("emptyCreateProject").addEventListener("click", () => openWizard("empty"));
     document.getElementById("importProjectButton").addEventListener("click", importProject);
+    document.getElementById("importGithubButton").addEventListener("click", importGithub);
     document.getElementById("refreshProjects").addEventListener("click", refresh);
     document.getElementById("projectSearch").addEventListener("input", renderProjects);
     document.getElementById("templateSearch").addEventListener("input", renderTemplates);
@@ -284,6 +311,7 @@
     init,
     refresh,
     openWizard,
-    importProject
+    importProject,
+    importGithub
   };
 })();
