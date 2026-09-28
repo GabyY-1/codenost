@@ -32,12 +32,14 @@ contextBridge.exposeInMainWorld("codenost", {
     deleteEntry: (projectPath, relativePath) => ipcRenderer.invoke("projects:delete-entry", { projectPath, relativePath }),
     renameEntry: (projectPath, relativePath, nextRelativePath) => ipcRenderer.invoke("projects:rename-entry", { projectPath, relativePath, nextRelativePath }),
     readConfig: (projectPath) => ipcRenderer.invoke("projects:read-config", projectPath),
-    writeConfig: (projectPath, config) => ipcRenderer.invoke("projects:write-config", { projectPath, config })
+    writeConfig: (projectPath, config) => ipcRenderer.invoke("projects:write-config", { projectPath, config }),
+    search: (projectPath, query, options) => ipcRenderer.invoke("projects:search", { projectPath, query, options })
   },
 
   terminal: {
-    create: (projectPath, shell) => ipcRenderer.invoke("terminal:create", { projectPath, shell }),
+    create: (projectPath, shell, size = {}) => ipcRenderer.invoke("terminal:create", { projectPath, shell, cols: size.cols, rows: size.rows }),
     write: (terminalId, data) => ipcRenderer.invoke("terminal:write", { terminalId, data }),
+    resize: (terminalId, cols, rows) => ipcRenderer.invoke("terminal:resize", { terminalId, cols, rows }),
     kill: (terminalId) => ipcRenderer.invoke("terminal:kill", terminalId),
     shells: () => ipcRenderer.invoke("terminal:shells"),
     onData: (callback) => {
@@ -55,7 +57,21 @@ contextBridge.exposeInMainWorld("codenost", {
   preview: {
     start: (projectPath) => ipcRenderer.invoke("preview:start", projectPath),
     stop: () => ipcRenderer.invoke("preview:stop"),
-    openWindow: (url) => ipcRenderer.invoke("preview:open-window", url)
+    openWindow: (url) => ipcRenderer.invoke("preview:open-window", url),
+    onLog: (callback) => {
+      const handler = (_event, payload) => callback(payload);
+      ipcRenderer.on("preview:log", handler);
+      return () => ipcRenderer.removeListener("preview:log", handler);
+    }
+  },
+
+  git: {
+    status: (projectPath) => ipcRenderer.invoke("git:status", projectPath),
+    init: (projectPath) => ipcRenderer.invoke("git:init", projectPath),
+    addAll: (projectPath) => ipcRenderer.invoke("git:add-all", projectPath),
+    commit: (projectPath, message) => ipcRenderer.invoke("git:commit", { projectPath, message }),
+    pull: (projectPath) => ipcRenderer.invoke("git:pull", projectPath),
+    push: (projectPath) => ipcRenderer.invoke("git:push", projectPath)
   },
 
   cloud: {
