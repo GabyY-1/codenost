@@ -383,7 +383,7 @@
   }
 
   async function createTerminal() {
-    if (!state.project) return;
+    if (!state.project) return null;
     try {
       const available = await window.codenost.terminal.shells();
       const result = await window.codenost.terminal.create(state.project.path, available[0]?.id);
@@ -418,9 +418,11 @@
       });
 
       window.CodeNostUI.selectBottom("terminal");
+      return result.id;
     } catch (error) {
       appendOutput("Terminal indisponible : " + (error.message || error));
       window.CodeNostUI.selectBottom("output");
+      return null;
     }
   }
 
@@ -460,6 +462,32 @@
   function handleTerminalExit(payload) {
     const item = state.terminals.get(payload.id);
     if (item) item.terminal.write(`\r\n[Processus terminé : ${payload.code}]\r\n`);
+  }
+
+  async function runProjectCommand(kind = "run") {
+    if (!state.project) return;
+    const config = await window.codenost.projects.readConfig(state.project.path);
+    const command = config?.commands?.[kind];
+
+    if (!command) {
+      window.CodeNostUI.notify(
+        kind === "build"
+          ? "Aucune commande build n'est définie dans le .pcn."
+          : "Aucune commande run n'est définie dans le .pcn.",
+        "error"
+      );
+      return;
+    }
+
+    let terminalId = state.activeTerminal;
+    if (!terminalId || !state.terminals.has(terminalId)) {
+      terminalId = await createTerminal();
+    }
+    if (!terminalId) return;
+
+    window.CodeNostUI.selectBottom("terminal");
+    await window.codenost.terminal.write(terminalId, command + "\n");
+    appendOutput(`Commande ${kind}: ${command}`);
   }
 
   async function startPreview() {
@@ -579,6 +607,7 @@
     saveActiveFile,
     saveAll,
     createTerminal,
+    runProjectCommand,
     startPreview,
     appendOutput
   };
