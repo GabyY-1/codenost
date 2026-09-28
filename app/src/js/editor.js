@@ -102,6 +102,7 @@
     });
 
     monaco.editor.setTheme(settings.theme === "light" ? "vs" : "vs-dark");
+    window.CodeNostExtensions?.applyEditor(state.editor);
     document.getElementById("breadcrumbs").classList.toggle("is-hidden", settings.breadcrumbs === false);
   }
 
@@ -337,7 +338,12 @@
   async function saveFile(path) {
     const file = state.openFiles.get(path);
     if (!file || !state.project) return;
-    const value = file.model.getValue();
+    let value = file.model.getValue();
+    value = window.CodeNostExtensions?.transformOnSave(path, value) ?? value;
+
+    if (value !== file.model.getValue()) {
+      file.model.setValue(value);
+    }
 
     try {
       await window.codenost.projects.writeFile(state.project.path, path, value);
