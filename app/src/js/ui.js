@@ -38,7 +38,7 @@
       { label: "Masquer / afficher", action: "toggle-bottom" }
     ],
     help: [
-      { label: "Documentation", action: "docs" },
+      { label: "Documentation", action: "docs", disabled: true },
       { label: "Site CodeNost", action: "website" },
       { separator: true },
       { label: "À propos", action: "about" }
