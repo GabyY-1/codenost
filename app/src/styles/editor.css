@@ -104,3 +104,8 @@ body.sidebar-hidden.right-hidden .editor-view{grid-template-columns:42px minmax(
   .editor-view{grid-template-columns:42px 210px minmax(0,1fr)}
   .right-panel{display:none}
 }
+
+
+.terminal-host{position:relative;overflow:hidden}
+.terminal-instance{position:absolute;inset:6px}
+.terminal-instance .xterm{height:100%}
