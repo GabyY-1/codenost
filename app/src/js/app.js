@@ -10,6 +10,7 @@
 
     state.settings = await window.codenost.settings.read();
     window.CodeNostUI.setSettings(state.settings);
+    window.CodeNostExtensions?.init(state.settings);
     await window.CodeNostEditor.init(state.settings);
 
     await window.CodeNostProjects.init({
