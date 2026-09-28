@@ -112,6 +112,7 @@
 
     await refreshTree();
     window.CodeNostUI.showEditor(project.name);
+    window.CodeNostAI?.onProjectChanged();
     await ensureTerminal();
     clearPreview();
   }
