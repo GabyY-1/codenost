@@ -124,3 +124,11 @@ body.sidebar-hidden.right-hidden .editor-view{grid-template-columns:42px minmax(
 .git-change-item{display:grid;grid-template-columns:26px minmax(0,1fr);gap:5px;align-items:center}
 .git-change-item span:first-child{font:700 9px var(--font-mono);color:var(--accent)}
 .git-change-item span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+.extensions-list{display:flex;flex-direction:column;gap:6px}
+.extension-card{border:1px solid var(--line);background:var(--bg-soft);border-radius:5px;padding:7px}
+.extension-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.extension-card-head strong{font-size:10px;color:var(--text-soft)}
+.extension-card-head span{font-size:9px;color:var(--muted)}
+.extension-card p{margin:5px 0 7px;color:var(--muted);font-size:9px;line-height:1.4}
