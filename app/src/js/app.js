@@ -88,7 +88,14 @@
 
     document.getElementById("openSignup").addEventListener("click", () => window.codenost.auth.openSignup());
 
-    document.getElementById("accountButton").addEventListener("click", () => openSettings("appearance"));
+    document.getElementById("accountButton").addEventListener("click", () => openSettings("account"));
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await window.CodeNostEditor.closeProject(false);
+      await window.codenost.auth.logout();
+      document.getElementById("settingsDialog").close();
+      applyAuthState({ authenticated: false, user: null });
+    });
   }
 
   function bindMenus() {
@@ -173,8 +180,33 @@
       window.CodeNostUI.notify("Le backend Cloud CodeNost n'est pas encore connecté.");
     });
 
-    document.getElementById("quickCommand").addEventListener("click", () => {
-      window.CodeNostUI.notify("La palette de commandes n'est pas encore incluse dans cette version.");
+    document.getElementById("quickCommand").addEventListener("click", async () => {
+      const command = await window.CodeNostUI.promptText({
+        title: "Palette de commandes",
+        label: "Commande",
+        confirm: "Exécuter"
+      });
+      if (!command) return;
+
+      const normalized = command.trim().toLowerCase();
+      const aliases = {
+        "nouveau projet": "new-project",
+        "importer": "import-project",
+        "enregistrer": "save",
+        "fermer projet": "close-project",
+        "parametres": "settings",
+        "paramètres": "settings",
+        "preview": "preview",
+        "terminal": "new-terminal",
+        "pcn": "open-pcn"
+      };
+
+      const action = aliases[normalized];
+      if (!action) {
+        window.CodeNostUI.notify("Commande inconnue.", "error");
+        return;
+      }
+      await runAction(action);
     });
 
     document.getElementById("editorSettingsButton").addEventListener("click", () => openSettings("editor"));
@@ -234,7 +266,8 @@
       editor: "Éditeur",
       ai: "Intelligence artificielle",
       cloud: "Cloud",
-      preview: "Preview"
+      preview: "Preview",
+      account: "Compte"
     };
     document.getElementById("settingsPageTitle").textContent = titles[page] || "Paramètres";
   }
@@ -249,6 +282,7 @@
     document.getElementById("settingAiMode").value = state.settings.aiMode || "review";
     document.getElementById("settingPreviewReload").checked = state.settings.previewAutoReload !== false;
     document.getElementById("aiModeSelect").value = state.settings.aiMode || "review";
+    document.getElementById("settingsAccountEmail").textContent = state.auth?.user?.email || (state.auth?.devBypass ? "Mode développement" : "Compte connecté");
   }
 
   async function saveSettings() {
