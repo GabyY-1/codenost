@@ -288,6 +288,76 @@ function renameEntry(root, relativePath, nextRelativePath) {
   return true;
 }
 
+
+function searchProject(root, query, options = {}) {
+  const needle = String(query || "").trim().toLowerCase();
+  if (!needle) return [];
+
+  const maxResults = Math.max(1, Math.min(Number(options.maxResults) || 200, 1000));
+  const results = [];
+
+  function walk(relative = "", depth = 0) {
+    if (depth > 12 || results.length >= maxResults) return;
+    const dir = safeResolve(root, relative);
+    if (!fs.existsSync(dir)) return;
+
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (IGNORE.has(entry.name)) continue;
+
+      const rel = path.join(relative, entry.name).split(path.sep).join("/");
+      if (entry.isDirectory()) {
+        walk(rel, depth + 1);
+        if (results.length >= maxResults) return;
+        continue;
+      }
+
+      if (entry.name.toLowerCase().includes(needle) || rel.toLowerCase().includes(needle)) {
+        results.push({
+          path: rel,
+          line: null,
+          column: null,
+          preview: "Nom de fichier correspondant"
+        });
+        if (results.length >= maxResults) return;
+      }
+
+      let stat;
+      try { stat = fs.statSync(safeResolve(root, rel)); } catch { continue; }
+      if (!stat.isFile() || stat.size > 1024 * 1024) continue;
+
+      let content;
+      try {
+        const buffer = fs.readFileSync(safeResolve(root, rel));
+        if (buffer.includes(0)) continue;
+        content = buffer.toString("utf8");
+      } catch {
+        continue;
+      }
+
+      const lines = content.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const lower = lines[i].toLowerCase();
+        let from = 0;
+        while (results.length < maxResults) {
+          const index = lower.indexOf(needle, from);
+          if (index === -1) break;
+          results.push({
+            path: rel,
+            line: i + 1,
+            column: index + 1,
+            preview: lines[i].trim().slice(0, 240)
+          });
+          from = index + Math.max(1, needle.length);
+        }
+        if (results.length >= maxResults) return;
+      }
+    }
+  }
+
+  walk();
+  return results;
+}
+
 module.exports = {
   readJson,
   writeJson,
@@ -300,5 +370,6 @@ module.exports = {
   createFolder,
   deleteEntry,
   renameEntry,
+  searchProject,
   safeResolve
 };
