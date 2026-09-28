@@ -107,3 +107,21 @@ kbd{border:1px solid var(--line-strong);background:var(--panel-2);border-radius:
 .empty-state>svg{width:34px;height:34px;margin-bottom:12px;color:var(--muted-2)}
 .empty-state strong{color:var(--text);margin-bottom:5px}
 .empty-state p{margin:0 0 15px}
+
+
+#app.theme-light{
+  --bg:#f6f7f9;
+  --bg-soft:#ffffff;
+  --panel:#ffffff;
+  --panel-2:#f1f3f6;
+  --panel-3:#e8ebf0;
+  --line:#d9dee7;
+  --line-strong:#c9d0dc;
+  --text:#171a21;
+  --text-soft:#394150;
+  --muted:#6e7889;
+  --muted-2:#9aa3b1;
+  --accent-soft:rgba(79,124,255,.10);
+  --shadow:0 18px 60px rgba(20,30,50,.12);
+  color-scheme:light;
+}
