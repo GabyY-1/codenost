@@ -21,3 +21,10 @@ jobs:
       - run: node --check app/src/js/projects.js
       - run: node --check app/src/js/editor.js
       - run: node --check app/src/js/app.js
+
+      - run: node --check beta/js/web-bridge.js
+      - run: node --check beta/js/icons.js
+      - run: node --check beta/js/ui.js
+      - run: node --check beta/js/projects.js
+      - run: node --check beta/js/editor.js
+      - run: node --check beta/js/app.js
