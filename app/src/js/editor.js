@@ -524,7 +524,7 @@
     document.getElementById("reloadPreview").addEventListener("click", reloadPreview);
 
     document.getElementById("openPreviewExternal").addEventListener("click", () => {
-      if (state.previewUrl) window.codenost.system.openExternal(state.previewUrl);
+      if (state.previewUrl) window.codenost.preview.openWindow(state.previewUrl);
     });
 
     document.querySelectorAll(".device-button").forEach(button => {
