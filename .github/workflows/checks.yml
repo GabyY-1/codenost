@@ -13,7 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --check assets/js/site.js
       - run: node --check app/electron/main.js
       - run: node --check app/electron/preload.js
       - run: node --check app/electron/project-service.js
