@@ -292,7 +292,7 @@ app.whenReady().then(() => {
     try { fs.rmSync(dataFile("session.json"), { force: true }); } catch {}
     return true;
   });
-  ipcMain.handle("auth:open-signup", () => shell.openExternal(process.env.CODENOST_SIGNUP_URL || "https://codenost.com/inscription"));
+  ipcMain.handle("auth:open-signup", () => shell.openExternal(process.env.CODENOST_SIGNUP_URL || "https://gabyy-1.github.io/codenost/inscription.html"));
 
   ipcMain.handle("projects:list", () => readRecent());
   ipcMain.handle("projects:choose-location", async () => {
