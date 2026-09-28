@@ -148,6 +148,78 @@ function createSupabaseService({ userDataPath }) {
     return result;
   }
 
+  async function listCloudProjects() {
+    await getUser();
+    const { data, error } = await client
+      .from("projects")
+      .select("id,name,template,last_opened_at,updated_at,pcn")
+      .is("deleted_at", null)
+      .order("last_opened_at", { ascending: false });
+    if (error) throw error;
+
+    return (data || []).map(project => ({
+      id: project.id,
+      name: project.name,
+      type: project.template || "project",
+      openedAt: project.last_opened_at || project.updated_at,
+      config: project.pcn || {}
+    }));
+  }
+
+  async function downloadProject(projectId, basePath) {
+    await getUser();
+
+    const { data: project, error: projectError } = await client
+      .from("projects")
+      .select("id,name,template,pcn,cloud_enabled")
+      .eq("id", projectId)
+      .is("deleted_at", null)
+      .single();
+    if (projectError) throw projectError;
+
+    const { data: files, error: filesError } = await client
+      .from("codenost_project_files")
+      .select("path,content,version,content_hash")
+      .eq("project_id", projectId);
+    if (filesError) throw filesError;
+
+    const safeName = String(project.name || "Projet CodeNost")
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
+      .trim() || "Projet CodeNost";
+
+    const root = path.join(basePath, safeName);
+    fs.mkdirSync(root, { recursive: true });
+
+    const pcn = project.pcn || {};
+    pcn.name ||= project.name;
+    pcn.type ||= project.template || "project";
+    pcn.cloud ||= {};
+    pcn.cloud.enabled = project.cloud_enabled !== false;
+    pcn.cloud.projectId = project.id;
+    pcn.cloud.lastSync = new Date().toISOString();
+    pcn.cloud.files = {};
+
+    for (const file of files || []) {
+      if (file.path === ".pcn") continue;
+      const target = path.join(root, ...file.path.split("/"));
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, file.content || "", "utf8");
+      pcn.cloud.files[file.path] = {
+        version: file.version,
+        hash: file.content_hash || sha256(file.content || "")
+      };
+    }
+
+    fs.writeFileSync(path.join(root, ".pcn"), JSON.stringify(pcn, null, 2) + "\n", "utf8");
+
+    await client
+      .from("projects")
+      .update({ last_opened_at: new Date().toISOString() })
+      .eq("id", projectId);
+
+    return { path: root, name: pcn.name, config: pcn };
+  }
+
   async function syncProject(projectPath, config) {
     const user = await getUser();
     const pcn = config || JSON.parse(fs.readFileSync(path.join(projectPath, ".pcn"), "utf8"));
@@ -293,6 +365,8 @@ function createSupabaseService({ userDataPath }) {
     handleAuthCallback,
     readCloudSettings,
     writeCloudSettings,
+    listCloudProjects,
+    downloadProject,
     syncProject,
     resolveConflict
   };
