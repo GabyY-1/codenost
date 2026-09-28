@@ -4,6 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const http = require("http");
 const { spawn } = require("child_process");
+const { createSupabaseService } = require("./supabase-service");
 const {
   readJson,
   writeJson,
@@ -20,6 +21,8 @@ const {
 } = require("./project-service");
 
 let mainWindow;
+let supabaseService = null;
+let pendingAuthUrl = null;
 let previewServer = null;
 let previewPort = null;
 const terminals = new Map();
@@ -99,49 +102,27 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 }
 
-function authStatus() {
-  const devBypass = process.env.CODENOST_DEV_BYPASS === "1";
-  const session = readJson(dataFile("session.json"), null);
-  return {
-    authenticated: devBypass || Boolean(session?.authenticated),
-    devBypass,
-    user: session?.user || null,
-    configured: Boolean(process.env.CODENOST_AUTH_URL)
-  };
-}
-
-async function login(payload) {
-  if (process.env.CODENOST_DEV_BYPASS === "1") {
-    const session = { authenticated: true, user: { email: "dev@local" } };
-    writeJson(dataFile("session.json"), session);
-    return { ok: true, ...session };
+async function handleAuthUrl(url) {
+  if (!supabaseService) {
+    pendingAuthUrl = url;
+    return;
   }
 
-  const authUrl = process.env.CODENOST_AUTH_URL;
-  if (!authUrl) {
-    return { ok: false, error: "Le serveur d'authentification CodeNost n'est pas encore configuré." };
+  const result = await supabaseService.handleAuthCallback(url);
+  if (result.ok) {
+    mainWindow?.webContents.send("auth:changed", {
+      authenticated: true,
+      configured: true,
+      devBypass: false,
+      user: result.user
+    });
+  } else {
+    mainWindow?.webContents.send("auth:changed", {
+      authenticated: false,
+      configured: true,
+      error: result.error
+    });
   }
-
-  const response = await fetch(authUrl.replace(/\/$/, "") + "/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    return { ok: false, error: "Connexion refusée." };
-  }
-
-  const data = await response.json();
-  if (!data?.token) return { ok: false, error: "Réponse d'authentification invalide." };
-
-  writeJson(dataFile("session.json"), {
-    authenticated: true,
-    token: data.token,
-    user: data.user || { email: payload.email }
-  });
-
-  return { ok: true, user: data.user || { email: payload.email } };
 }
 
 function getShells() {
@@ -285,12 +266,43 @@ function startPreview(projectPath) {
   });
 }
 
-app.whenReady().then(() => {
-  ipcMain.handle("auth:status", () => authStatus());
-  ipcMain.handle("auth:login", (_event, payload) => login(payload));
-  ipcMain.handle("auth:logout", () => {
-    try { fs.rmSync(dataFile("session.json"), { force: true }); } catch {}
-    return true;
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("codenost", process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient("codenost");
+}
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (_event, argv) => {
+    const url = argv.find(arg => arg.startsWith("codenost://"));
+    if (url) handleAuthUrl(url);
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  handleAuthUrl(url);
+});
+
+app.whenReady().then(async () => {
+  supabaseService = createSupabaseService({ userDataPath: app.getPath("userData") });
+
+  ipcMain.handle("auth:status", () => supabaseService.status());
+  ipcMain.handle("auth:login", (_event, payload) => supabaseService.login(payload));
+  ipcMain.handle("auth:logout", () => supabaseService.logout());
+  ipcMain.handle("auth:github-login", async () => {
+    const result = await supabaseService.startGithubOAuth();
+    if (result.ok && result.url) await shell.openExternal(result.url);
+    return result;
   });
   ipcMain.handle("auth:open-signup", () => {
     const url = process.env.CODENOST_SIGNUP_URL;
@@ -358,11 +370,48 @@ app.whenReady().then(() => {
     return true;
   });
 
-  ipcMain.handle("settings:read", () => readSettings());
-  ipcMain.handle("settings:write", (_event, settings) => saveSettings(settings));
+  ipcMain.handle("settings:read", async () => {
+    const local = readSettings();
+    try {
+      const cloud = await supabaseService.readCloudSettings();
+      return { ...local, ...cloud };
+    } catch {
+      return local;
+    }
+  });
+
+  ipcMain.handle("settings:write", async (_event, settings) => {
+    const local = saveSettings(settings);
+    try { await supabaseService.writeCloudSettings(local); } catch {}
+    return local;
+  });
+
+  ipcMain.handle("cloud:sync-project", async (_event, projectPath) => {
+    const config = readJson(path.join(projectPath, ".pcn"), {});
+    return supabaseService.syncProject(projectPath, config);
+  });
+
+  ipcMain.handle("cloud:resolve-conflict", (_event, payload) => {
+    return supabaseService.resolveConflict(
+      payload.projectPath,
+      payload.projectId,
+      payload.conflict,
+      payload.choice
+    );
+  });
+
   ipcMain.handle("system:open-external", (_event, url) => shell.openExternal(url));
 
   createWindow();
+
+  if (pendingAuthUrl) {
+    const url = pendingAuthUrl;
+    pendingAuthUrl = null;
+    handleAuthUrl(url);
+  } else {
+    const startupUrl = process.argv.find(arg => arg.startsWith("codenost://"));
+    if (startupUrl) handleAuthUrl(startupUrl);
+  }
 });
 
 app.on("window-all-closed", () => {
