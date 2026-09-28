@@ -254,17 +254,31 @@
 
             <div class="sidebar-view" data-sidebar-view="search">
               <div class="sidebar-heading"><span>RECHERCHE</span></div>
-              <div class="sidebar-placeholder">
-                <span data-icon="search"></span>
-                <p>Recherche globale prévue dans une prochaine étape.</p>
+              <div class="sidebar-tool">
+                <div class="search-field sidebar-search-field">
+                  <span data-icon="search"></span>
+                  <input id="globalSearchInput" type="search" placeholder="Rechercher dans le projet">
+                </div>
+                <div id="globalSearchSummary" class="sidebar-tool-summary">Saisis un terme pour rechercher.</div>
+                <div id="globalSearchResults" class="sidebar-results"></div>
               </div>
             </div>
 
             <div class="sidebar-view" data-sidebar-view="git">
-              <div class="sidebar-heading"><span>CONTRÔLE DE CODE SOURCE</span></div>
-              <div class="sidebar-placeholder">
-                <span data-icon="git-branch"></span>
-                <p>L'architecture Git est réservée pour l'intégration GitHub.</p>
+              <div class="sidebar-heading">
+                <span>CONTRÔLE DE CODE SOURCE</span>
+                <button id="refreshGitButton" class="mini-icon" title="Actualiser Git"><span data-icon="refresh-cw"></span></button>
+              </div>
+              <div class="sidebar-tool git-tool">
+                <div id="gitBranchLabel" class="sidebar-tool-summary">Git non vérifié</div>
+                <div id="gitChanges" class="sidebar-results"></div>
+                <textarea id="gitCommitMessage" rows="2" placeholder="Message de commit"></textarea>
+                <div class="git-actions">
+                  <button id="gitInitButton" class="secondary-button compact" type="button">Initialiser</button>
+                  <button id="gitCommitButton" class="primary-button compact" type="button">Commit</button>
+                  <button id="gitPullButton" class="secondary-button compact" type="button">Pull</button>
+                  <button id="gitPushButton" class="secondary-button compact" type="button">Push</button>
+                </div>
               </div>
             </div>
 
@@ -523,11 +537,11 @@
                 <option value="review">Voir avant application</option>
               </select>
             </label>
-            <div class="settings-info">Aucun fournisseur IA n'est configuré actuellement.</div>
+            <div class="settings-info">Nemotron est utilisé via OpenRouter. Les modifications suivent le mode choisi.</div>
           </div>
 
           <div class="settings-page" data-settings-content="cloud">
-            <div class="settings-info">Le backend Cloud CodeNost n'est pas encore connecté. Les projets locaux continuent de fonctionner hors ligne.</div>
+            <div class="settings-info">CodeNost Cloud est connecté via Supabase. Les projets restent utilisables localement hors ligne.</div>
           </div>
 
           <div class="settings-page" data-settings-content="preview">
