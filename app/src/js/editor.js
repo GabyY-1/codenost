@@ -408,7 +408,14 @@
       const fit = new FitAddonClass();
       terminal.loadAddon(fit);
 
-      state.terminals.set(result.id, { id: result.id, title: result.shell, terminal, fit });
+      const host = document.getElementById("terminalHost");
+      const container = document.createElement("div");
+      container.className = "terminal-instance is-hidden";
+      container.dataset.terminalId = result.id;
+      host.appendChild(container);
+      terminal.open(container);
+
+      state.terminals.set(result.id, { id: result.id, title: result.shell, terminal, fit, container });
       state.activeTerminal = result.id;
       renderTerminalTabs();
       mountActiveTerminal();
@@ -443,11 +450,12 @@
   }
 
   function mountActiveTerminal() {
-    const host = document.getElementById("terminalHost");
-    host.innerHTML = "";
+    for (const [id, item] of state.terminals) {
+      item.container?.classList.toggle("is-hidden", id !== state.activeTerminal);
+    }
+
     const item = state.terminals.get(state.activeTerminal);
     if (!item) return;
-    item.terminal.open(host);
     setTimeout(() => {
       item.fit.fit();
       item.terminal.focus();
