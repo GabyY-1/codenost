@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>CodeNost BETA</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/app.css">
+  <link rel="stylesheet" href="styles/editor.css">
+</head>
+<body>
+  <div id="app" class="theme-dark">
+    <section id="authView" class="auth-view">
+      <div class="auth-brand">CodeNost <span class="beta-badge">BETA</span></div>
+
+      <div class="auth-stage">
+        <div class="welcome-mark" aria-hidden="true">
+          <div class="welcome-cube"></div>
+        </div>
+
+        <div class="auth-card">
+          <p class="eyebrow">Bienvenue</p>
+          <h1>Connexion à CodeNost</h1>
+          <p class="subtle">
+            Connecte-toi pour accéder à tes projets, ton cloud et tes paramètres.
+          </p>
+
+          <form id="loginForm" class="auth-form">
+            <label>
+              <span>Adresse e-mail</span>
+              <input id="loginEmail" type="email" autocomplete="email" required>
+            </label>
+
+            <label>
+              <span>Mot de passe</span>
+              <div class="password-wrap">
+                <input id="loginPassword" type="password" autocomplete="current-password" required>
+                <button class="icon-button" type="button" id="toggleLoginPassword" aria-label="Afficher le mot de passe">
+                  <span data-icon="eye"></span>
+                </button>
+              </div>
+            </label>
+
+            <button class="primary-button full-width" type="submit">
+              <span data-icon="log-in"></span>
+              Connexion
+            </button>
+          </form>
+
+          <div class="auth-divider"><span>ou</span></div>
+
+          <button id="githubLogin" class="secondary-button full-width" type="button">
+            <span data-icon="github"></span>
+            Continuer avec GitHub
+          </button>
+
+          <p id="authMessage" class="form-message" aria-live="polite"></p>
+
+          <p class="signup-note">
+            Pas encore de compte ?
+            <button id="openSignup" class="link-button" type="button">Créer un compte</button>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="mainView" class="main-view is-hidden">
+      <header class="titlebar">
+        <div class="titlebar-left">
+          <div class="app-wordmark">CodeNost <span class="beta-badge">BETA</span></div>
+
+          <nav class="menu-bar" aria-label="Menus">
+            <button class="menu-trigger" data-menu="file">Fichier</button>
+            <button class="menu-trigger" data-menu="edit">Modifier</button>
+            <button class="menu-trigger" data-menu="view">Affichage</button>
+            <button class="menu-trigger" data-menu="project">Projet</button>
+            <button class="menu-trigger" data-menu="terminal">Terminal</button>
+            <button class="menu-trigger" data-menu="help">Aide</button>
+          </nav>
+        </div>
+
+        <div class="titlebar-center">
+          <span id="windowTitle">Accueil</span>
+        </div>
+
+        <div class="titlebar-right">
+          <button id="quickCommand" class="toolbar-button" type="button" title="Palette de commandes">
+            <span data-icon="search"></span>
+          </button>
+          <button id="syncButton" class="toolbar-button" type="button" title="Synchronisation cloud">
+            <span data-icon="refresh-cw"></span>
+          </button>
+          <button id="accountButton" class="account-button" type="button">
+            <span class="account-dot"></span>
+            <span id="accountLabel">Compte</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="menuLayer" class="menu-layer is-hidden"></div>
+
+      <main class="main-content">
+        <section id="homeView" class="home-view">
+          <aside id="homeAiPanel" class="home-ai panel-section">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Assistant</span>
+                <strong>IA CodeNost</strong>
+              </div>
+              <button class="icon-button" data-collapse="homeAiPanel" title="Masquer">
+                <span data-icon="panel-left-close"></span>
+              </button>
+            </div>
+
+            <div id="homeAiMessages" class="ai-messages">
+              <div class="empty-ai">
+                <span data-icon="sparkles"></span>
+                <p>L'architecture IA est prête à recevoir un fournisseur.</p>
+                <small>Aucun modèle n'est configuré pour le moment.</small>
+              </div>
+            </div>
+
+            <div class="ai-quick-actions">
+              <button type="button" disabled>Créer un projet</button>
+              <button type="button" disabled>Analyser un projet</button>
+            </div>
+
+            <form id="homeAiForm" class="ai-input-row">
+              <button class="icon-button" type="button" disabled title="Pièce jointe">
+                <span data-icon="paperclip"></span>
+              </button>
+              <textarea id="homeAiInput" rows="1" placeholder="L'IA sera disponible après configuration" disabled></textarea>
+              <button class="icon-button primary-icon" type="submit" disabled>
+                <span data-icon="arrow-up"></span>
+              </button>
+            </form>
+          </aside>
+
+          <section class="home-projects panel-section">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Accueil</span>
+                <strong>Projets</strong>
+              </div>
+              <div class="header-actions">
+                <button id="restoreHomeAi" class="icon-button is-hidden" type="button" title="Rouvrir l'assistant IA">
+                  <span data-icon="sparkles"></span>
+                </button>
+                <button id="importProjectButton" class="secondary-button compact" type="button">
+                  <span data-icon="folder-input"></span>
+                  Importer
+                </button>
+                <button id="importGithubButton" class="secondary-button compact" type="button">
+                  <span data-icon="github"></span>
+                  GitHub
+                </button>
+                <button id="createProjectButton" class="primary-button compact" type="button">
+                  <span data-icon="plus"></span>
+                  Nouveau projet
+                </button>
+              </div>
+            </div>
+
+            <div class="project-toolbar">
+              <div class="search-field">
+                <span data-icon="search"></span>
+                <input id="projectSearch" type="search" placeholder="Rechercher un projet">
+              </div>
+              <button id="refreshProjects" class="icon-button" title="Actualiser">
+                <span data-icon="refresh-cw"></span>
+              </button>
+            </div>
+
+            <div id="projectsList" class="projects-list"></div>
+
+            <div id="projectsEmpty" class="empty-state is-hidden">
+              <span data-icon="folder-plus"></span>
+              <strong>Aucun projet pour le moment</strong>
+              <p>Crée un projet ou importe un dossier existant.</p>
+              <button class="primary-button compact" id="emptyCreateProject" type="button">
+                <span data-icon="plus"></span>
+                Créer un projet
+              </button>
+            </div>
+          </section>
+
+          <aside class="home-create panel-section">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Création</span>
+                <strong>Templates</strong>
+              </div>
+            </div>
+
+            <div class="template-search search-field">
+              <span data-icon="search"></span>
+              <input id="templateSearch" type="search" placeholder="Rechercher">
+            </div>
+
+            <div class="template-categories">
+              <button class="category-chip is-active" data-category="all">Tous</button>
+              <button class="category-chip" data-category="web">Web</button>
+              <button class="category-chip" data-category="script">Script</button>
+              <button class="category-chip" data-category="runtime">Runtime</button>
+            </div>
+
+            <div id="templateList" class="template-list"></div>
+
+            <button id="customTemplateButton" class="text-action" type="button" disabled title="Prévu pour une prochaine version">
+              <span data-icon="layout-template"></span>
+              Templates personnalisés
+            </button>
+          </aside>
+        </section>
+
+        <section id="editorView" class="editor-view is-hidden">
+          <div class="activity-bar">
+            <button class="activity-button is-active" data-sidebar="explorer" title="Explorateur"><span data-icon="files"></span></button>
+            <button class="activity-button" data-sidebar="search" title="Recherche"><span data-icon="search"></span></button>
+            <button class="activity-button" data-sidebar="git" title="Git"><span data-icon="git-branch"></span></button>
+            <button class="activity-button" data-sidebar="extensions" title="Extensions"><span data-icon="blocks"></span></button>
+            <div class="activity-spacer"></div>
+            <button class="activity-button" id="showRightPanelButton" title="Preview / IA"><span data-icon="monitor"></span></button>
+            <button class="activity-button" id="editorSettingsButton" title="Paramètres"><span data-icon="settings"></span></button>
+          </div>
+
+          <aside id="editorSidebar" class="editor-sidebar">
+            <div class="sidebar-view is-active" data-sidebar-view="explorer">
+              <div class="sidebar-heading">
+                <span>EXPLORATEUR</span>
+                <div class="sidebar-actions">
+                  <button id="newFileButton" class="mini-icon" title="Nouveau fichier"><span data-icon="file-plus"></span></button>
+                  <button id="newFolderButton" class="mini-icon" title="Nouveau dossier"><span data-icon="folder-plus"></span></button>
+                  <button id="refreshTreeButton" class="mini-icon" title="Actualiser"><span data-icon="refresh-cw"></span></button>
+                </div>
+              </div>
+              <div class="project-root-row">
+                <span data-icon="chevron-down"></span>
+                <strong id="projectRootName">PROJET</strong>
+              </div>
+              <div id="fileTree" class="file-tree"></div>
+            </div>
+
+            <div class="sidebar-view" data-sidebar-view="search">
+              <div class="sidebar-heading"><span>RECHERCHE</span></div>
+              <div class="sidebar-placeholder">
+                <span data-icon="search"></span>
+                <p>Recherche globale prévue dans une prochaine étape.</p>
+              </div>
+            </div>
+
+            <div class="sidebar-view" data-sidebar-view="git">
+              <div class="sidebar-heading"><span>CONTRÔLE DE CODE SOURCE</span></div>
+              <div class="sidebar-placeholder">
+                <span data-icon="git-branch"></span>
+                <p>L'architecture Git est réservée pour l'intégration GitHub.</p>
+              </div>
+            </div>
+
+            <div class="sidebar-view" data-sidebar-view="extensions">
+              <div class="sidebar-heading"><span>EXTENSIONS</span></div>
+              <div class="sidebar-placeholder">
+                <span data-icon="blocks"></span>
+                <p>Le catalogue accueillera uniquement les extensions officielles au lancement.</p>
+              </div>
+            </div>
+          </aside>
+
+          <section class="editor-main">
+            <div id="editorTabs" class="editor-tabs"></div>
+            <div id="breadcrumbs" class="breadcrumbs"></div>
+
+            <div class="editor-surface">
+              <div id="monacoEditor" class="monaco-host"></div>
+
+              <div id="editorWelcome" class="editor-welcome">
+                <div>
+                  <div class="welcome-logo">CodeNost</div>
+                  <p>Ouvre un fichier depuis l'explorateur pour commencer.</p>
+                  <div class="shortcut-list">
+                    <span><kbd>Ctrl</kbd> + <kbd>S</kbd> Enregistrer</span>
+                    <span><kbd>Ctrl</kbd> + <kbd>P</kbd> Ouvrir rapidement</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <section id="bottomPanel" class="bottom-panel">
+              <div class="bottom-tabs">
+                <button class="bottom-tab is-active" data-bottom="terminal">Terminal</button>
+                <button class="bottom-tab" data-bottom="problems">Problèmes <span id="problemsCount">0</span></button>
+                <button class="bottom-tab" data-bottom="output">Sortie</button>
+
+                <div class="bottom-actions">
+                  <button id="newTerminalButton" class="mini-icon" title="Nouveau terminal"><span data-icon="plus"></span></button>
+                  <button id="toggleBottomPanel" class="mini-icon" title="Masquer le panneau"><span data-icon="panel-bottom-close"></span></button>
+                </div>
+              </div>
+
+              <div class="bottom-content">
+                <div class="bottom-view is-active" data-bottom-view="terminal">
+                  <div class="terminal-tabs" id="terminalTabs"></div>
+                  <div id="terminalHost" class="terminal-host"></div>
+                </div>
+
+                <div class="bottom-view" data-bottom-view="problems">
+                  <div id="problemsView" class="panel-empty">Aucun problème détecté.</div>
+                </div>
+
+                <div class="bottom-view" data-bottom-view="output">
+                  <pre id="outputView" class="output-view"></pre>
+                </div>
+              </div>
+            </section>
+
+            <footer class="status-bar">
+              <button id="statusProject" type="button"><span data-icon="git-branch"></span><span>Projet</span></button>
+              <span id="statusSync">Cloud non connecté</span>
+              <span class="status-spacer"></span>
+              <span id="statusCursor">Ln 1, Col 1</span>
+              <span id="statusEncoding">UTF-8</span>
+              <span id="statusLanguage">Texte</span>
+            </footer>
+          </section>
+
+          <aside id="rightPanel" class="right-panel">
+            <div class="right-tabs">
+              <button class="right-tab is-active" data-right="preview">Preview</button>
+              <button class="right-tab" data-right="ai">IA</button>
+              <button id="toggleRightPanel" class="mini-icon" title="Masquer"><span data-icon="panel-right-close"></span></button>
+            </div>
+
+            <div class="right-toolbar" id="previewToolbar">
+              <div class="device-switcher">
+                <button class="device-button is-active" data-device="desktop" title="Ordinateur"><span data-icon="monitor"></span></button>
+                <button class="device-button" data-device="tablet" title="Tablette"><span data-icon="tablet"></span></button>
+                <button class="device-button" data-device="phone" title="Téléphone"><span data-icon="smartphone"></span></button>
+              </div>
+              <button id="reloadPreview" class="mini-icon" title="Recharger"><span data-icon="rotate-cw"></span></button>
+              <button id="openPreviewExternal" class="mini-icon" title="Ouvrir dans le navigateur"><span data-icon="external-link"></span></button>
+            </div>
+
+            <div class="right-content">
+              <div class="right-view is-active" data-right-view="preview">
+                <div id="previewShell" class="preview-shell device-desktop">
+                  <iframe id="previewFrame" title="Preview CodeNost"></iframe>
+                  <div id="previewEmpty" class="preview-empty">
+                    <span data-icon="monitor-up"></span>
+                    <strong>Preview</strong>
+                    <p>Lance une preview depuis un projet web compatible.</p>
+                    <button id="startPreviewButton" class="secondary-button compact" type="button">Démarrer</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="right-view" data-right-view="ai">
+                <div class="ai-editor-panel">
+                  <div class="empty-ai">
+                    <span data-icon="sparkles"></span>
+                    <p>Assistant de projet</p>
+                    <small>L'IA n'est pas encore connectée à un modèle.</small>
+                  </div>
+                  <div class="ai-permission-row">
+                    <span>Mode IA</span>
+                    <select id="aiModeSelect">
+                      <option value="direct">Appliquer directement</option>
+                      <option value="confirm">Demander confirmation</option>
+                      <option value="review">Voir les changements avant application</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </section>
+
+    <dialog id="projectWizard" class="dialog-shell">
+      <form id="projectWizardForm" class="wizard" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <span class="panel-kicker">Nouveau projet</span>
+            <h2>Assistant de création</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Fermer"><span data-icon="x"></span></button>
+        </div>
+
+        <div class="wizard-steps">
+          <button type="button" class="wizard-step is-active" data-step="1">1. Général</button>
+          <button type="button" class="wizard-step" data-step="2">2. Technologie</button>
+          <button type="button" class="wizard-step" data-step="3">3. Emplacement</button>
+          <button type="button" class="wizard-step" data-step="4">4. Options</button>
+        </div>
+
+        <div class="wizard-page is-active" data-page="1">
+          <label class="field">
+            <span>Nom du projet</span>
+            <input id="wizardName" type="text" maxlength="80" placeholder="Mon projet" required>
+          </label>
+          <p class="field-help">Le projet reste un dossier normal. CodeNost y ajoute uniquement un fichier <code>.pcn</code>.</p>
+        </div>
+
+        <div class="wizard-page" data-page="2">
+          <div class="field">
+            <span>Template</span>
+            <div id="wizardTemplates" class="wizard-template-grid"></div>
+          </div>
+        </div>
+
+        <div class="wizard-page" data-page="3">
+          <label class="field">
+            <span>Emplacement</span>
+            <div class="path-picker">
+              <input id="wizardLocation" type="text" readonly placeholder="Choisir un dossier">
+              <button id="chooseLocationButton" class="secondary-button" type="button">Parcourir</button>
+            </div>
+          </label>
+        </div>
+
+        <div class="wizard-page" data-page="4">
+          <label class="toggle-row">
+            <div>
+              <strong>Cloud CodeNost</strong>
+              <small>Activé par défaut. La synchronisation démarrera quand le backend cloud sera connecté.</small>
+            </div>
+            <input id="wizardCloud" type="checkbox" checked>
+          </label>
+
+          <div class="review-box">
+            <span>Résumé</span>
+            <strong id="wizardSummary">Projet</strong>
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <button id="wizardBack" class="secondary-button" type="button" disabled>Retour</button>
+          <div class="wizard-footer-spacer"></div>
+          <button id="wizardNext" class="primary-button" type="button">Continuer</button>
+          <button id="wizardCreate" class="primary-button is-hidden" type="submit">Créer le projet</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settingsDialog" class="dialog-shell settings-dialog">
+      <div class="settings-window">
+        <aside class="settings-nav">
+          <div class="settings-title">Paramètres</div>
+          <button class="settings-nav-item is-active" data-settings-page="appearance"><span data-icon="palette"></span> Apparence</button>
+          <button class="settings-nav-item" data-settings-page="editor"><span data-icon="code-2"></span> Éditeur</button>
+          <button class="settings-nav-item" data-settings-page="ai"><span data-icon="sparkles"></span> IA</button>
+          <button class="settings-nav-item" data-settings-page="cloud"><span data-icon="cloud"></span> Cloud</button>
+          <button class="settings-nav-item" data-settings-page="preview"><span data-icon="monitor"></span> Preview</button>
+          <button class="settings-nav-item" data-settings-page="account"><span data-icon="log-in"></span> Compte</button>
+        </aside>
+
+        <section class="settings-content">
+          <div class="settings-header">
+            <h2 id="settingsPageTitle">Apparence</h2>
+            <button id="closeSettings" class="icon-button"><span data-icon="x"></span></button>
+          </div>
+
+          <div class="settings-page is-active" data-settings-content="appearance">
+            <label class="setting-control">
+              <span><strong>Thème</strong><small>Thème général de CodeNost</small></span>
+              <select id="settingTheme">
+                <option value="dark">Sombre</option>
+                <option value="light">Clair</option>
+              </select>
+            </label>
+            <label class="setting-control">
+              <span><strong>Taille du texte</strong><small>Taille de l'éditeur</small></span>
+              <input id="settingFontSize" type="number" min="10" max="28">
+            </label>
+          </div>
+
+          <div class="settings-page" data-settings-content="editor">
+            <label class="toggle-row"><span><strong>Numéros de lignes</strong><small>Afficher les numéros de lignes</small></span><input id="settingLineNumbers" type="checkbox"></label>
+            <label class="toggle-row"><span><strong>Breadcrumbs</strong><small>Afficher le chemin du fichier</small></span><input id="settingBreadcrumbs" type="checkbox"></label>
+            <label class="toggle-row"><span><strong>Minimap</strong><small>Afficher la minimap de code</small></span><input id="settingMinimap" type="checkbox"></label>
+            <label class="toggle-row"><span><strong>Sauvegarde automatique</strong><small>Sauvegarder les fichiers automatiquement</small></span><input id="settingAutoSave" type="checkbox"></label>
+          </div>
+
+          <div class="settings-page" data-settings-content="ai">
+            <label class="setting-control">
+              <span><strong>Comportement des modifications</strong><small>Contrôle la façon dont l'IA appliquera ses changements</small></span>
+              <select id="settingAiMode">
+                <option value="direct">Appliquer directement</option>
+                <option value="confirm">Demander confirmation</option>
+                <option value="review">Voir avant application</option>
+              </select>
+            </label>
+            <div class="settings-info">Aucun fournisseur IA n'est configuré actuellement.</div>
+          </div>
+
+          <div class="settings-page" data-settings-content="cloud">
+            <div class="settings-info">Le backend Cloud CodeNost n'est pas encore connecté. Les projets locaux continuent de fonctionner hors ligne.</div>
+          </div>
+
+          <div class="settings-page" data-settings-content="preview">
+            <label class="toggle-row"><span><strong>Rechargement automatique</strong><small>Actualiser la preview après sauvegarde</small></span><input id="settingPreviewReload" type="checkbox"></label>
+          </div>
+
+          <div class="settings-page" data-settings-content="account">
+            <div class="setting-control">
+              <span><strong>Session CodeNost</strong><small id="settingsAccountEmail">Compte connecté</small></span>
+              <button id="logoutButton" class="secondary-button" type="button">Déconnexion</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </dialog>
+
+    <dialog id="textPromptDialog" class="dialog-shell small-dialog">
+      <form id="textPromptForm" method="dialog" class="prompt-dialog">
+        <div class="dialog-header">
+          <h2 id="textPromptTitle">Nouveau fichier</h2>
+          <button class="icon-button" value="cancel"><span data-icon="x"></span></button>
+        </div>
+        <label class="field">
+          <span id="textPromptLabel">Nom</span>
+          <input id="textPromptInput" type="text" required>
+        </label>
+        <div class="prompt-actions">
+          <button class="secondary-button" value="cancel">Annuler</button>
+          <button id="textPromptConfirm" class="primary-button" type="submit">Créer</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+
+  <script src="js/web-bridge.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
