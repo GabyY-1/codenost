@@ -109,3 +109,18 @@ body.sidebar-hidden.right-hidden .editor-view{grid-template-columns:42px minmax(
 .terminal-host{position:relative;overflow:hidden}
 .terminal-instance{position:absolute;inset:6px}
 .terminal-instance .xterm{height:100%}
+
+
+.sidebar-tool{padding:7px;display:flex;flex-direction:column;gap:7px}
+.sidebar-search-field{margin:0}
+.sidebar-tool-summary{font-size:10px;color:var(--muted);line-height:1.4;padding:2px 1px}
+.sidebar-results{display:flex;flex-direction:column;gap:2px;min-height:0}
+.search-result-item,.git-change-item{width:100%;border:0;background:transparent;color:var(--text-soft);padding:6px;border-radius:4px;text-align:left;font-size:10px}
+.search-result-item:hover,.git-change-item:hover{background:var(--panel-2)}
+.search-result-path{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-result-preview{margin-top:2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono);font-size:9px}
+.git-tool textarea{width:100%;min-height:50px;resize:vertical;border:1px solid var(--line);border-radius:4px;background:var(--bg-soft);color:var(--text);padding:6px;font:10px/1.4 var(--font-ui)}
+.git-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.git-change-item{display:grid;grid-template-columns:26px minmax(0,1fr);gap:5px;align-items:center}
+.git-change-item span:first-child{font:700 9px var(--font-mono);color:var(--accent)}
+.git-change-item span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
