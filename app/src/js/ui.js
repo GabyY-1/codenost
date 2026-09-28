@@ -31,7 +31,7 @@
       { label: "Lancer la preview", action: "preview" },
       { separator: true },
       { label: "Ouvrir la configuration .pcn", action: "open-pcn" },
-      { label: "Synchroniser", action: "sync", disabled: true }
+      { label: "Synchroniser", action: "sync" }
     ],
     terminal: [
       { label: "Nouveau terminal", action: "new-terminal", shortcut: "Ctrl+Shift+ù" },
@@ -39,7 +39,7 @@
     ],
     help: [
       { label: "Documentation", action: "docs", disabled: true },
-      { label: "Site CodeNost", action: "website" },
+      
       { separator: true },
       { label: "À propos", action: "about" }
     ]
