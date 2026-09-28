@@ -269,50 +269,129 @@ function createSupabaseService({ userDataPath }) {
     const local = readTextFiles(projectPath);
     const known = pcn.cloud.files || {};
     const conflicts = [];
+    const allPaths = new Set([...local.keys(), ...remote.keys(), ...Object.keys(known)]);
 
-    for (const [filePath, localFile] of local) {
+    const writeLocal = (filePath, content) => {
+      const target = path.join(projectPath, ...filePath.split("/"));
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, content, "utf8");
+    };
+
+    const deleteLocal = filePath => {
+      const target = path.join(projectPath, ...filePath.split("/"));
+      try { fs.rmSync(target, { force: true }); } catch {}
+    };
+
+    for (const filePath of allPaths) {
+      const localFile = local.get(filePath);
       const remoteFile = remote.get(filePath);
       const previous = known[filePath];
 
-      const localChanged = !previous || previous.hash !== localFile.hash;
-      const remoteChanged = Boolean(remoteFile) && (!previous || previous.version !== remoteFile.version);
+      if (localFile && remoteFile) {
+        if (!previous) {
+          if (localFile.hash !== remoteFile.content_hash) {
+            conflicts.push({
+              path: filePath,
+              local: localFile.content,
+              remote: remoteFile.content,
+              remoteVersion: remoteFile.version
+            });
+          } else {
+            known[filePath] = { version: remoteFile.version, hash: remoteFile.content_hash };
+          }
+          continue;
+        }
 
-      if (remoteFile && localChanged && remoteChanged && remoteFile.content_hash !== localFile.hash) {
-        conflicts.push({
-          path: filePath,
-          local: localFile.content,
-          remote: remoteFile.content,
-          remoteVersion: remoteFile.version
-        });
+        const localChanged = previous.hash !== localFile.hash;
+        const remoteChanged = previous.version !== remoteFile.version;
+
+        if (localChanged && remoteChanged && localFile.hash !== remoteFile.content_hash) {
+          conflicts.push({
+            path: filePath,
+            local: localFile.content,
+            remote: remoteFile.content,
+            remoteVersion: remoteFile.version
+          });
+          continue;
+        }
+
+        if (!localChanged && remoteChanged) {
+          writeLocal(filePath, remoteFile.content);
+          known[filePath] = { version: remoteFile.version, hash: remoteFile.content_hash };
+          continue;
+        }
+
+        if (localChanged && !remoteChanged) {
+          const { data, error } = await client
+            .from("codenost_project_files")
+            .update({ content: localFile.content })
+            .eq("id", remoteFile.id)
+            .select("version,content_hash")
+            .single();
+          if (error) throw error;
+          known[filePath] = { version: data.version, hash: data.content_hash };
+          continue;
+        }
+
+        known[filePath] = { version: remoteFile.version, hash: remoteFile.content_hash };
+        continue;
+      }
+
+      if (localFile && !remoteFile) {
+        if (previous) {
+          const localChanged = previous.hash !== localFile.hash;
+          if (localChanged) {
+            conflicts.push({
+              path: filePath,
+              local: localFile.content,
+              remote: null,
+              remoteVersion: null
+            });
+          } else {
+            deleteLocal(filePath);
+            delete known[filePath];
+          }
+          continue;
+        }
+
+        const { data, error } = await client
+          .from("codenost_project_files")
+          .insert({ project_id: projectId, path: filePath, content: localFile.content })
+          .select("version,content_hash")
+          .single();
+        if (error) throw error;
+        known[filePath] = { version: data.version, hash: data.content_hash };
+        continue;
+      }
+
+      if (!localFile && remoteFile) {
+        if (previous) {
+          const remoteChanged = previous.version !== remoteFile.version;
+          if (remoteChanged) {
+            conflicts.push({
+              path: filePath,
+              local: null,
+              remote: remoteFile.content,
+              remoteVersion: remoteFile.version
+            });
+          } else {
+            const { error } = await client
+              .from("codenost_project_files")
+              .delete()
+              .eq("id", remoteFile.id);
+            if (error) throw error;
+            delete known[filePath];
+          }
+          continue;
+        }
+
+        writeLocal(filePath, remoteFile.content);
+        known[filePath] = { version: remoteFile.version, hash: remoteFile.content_hash };
       }
     }
 
     if (conflicts.length) {
       return { ok: false, conflicts, projectId };
-    }
-
-    for (const [filePath, localFile] of local) {
-      const { data, error } = await client
-        .from("codenost_project_files")
-        .upsert(
-          { project_id: projectId, path: filePath, content: localFile.content },
-          { onConflict: "project_id,path" }
-        )
-        .select("path,version,content_hash")
-        .single();
-      if (error) throw error;
-      known[filePath] = { version: data.version, hash: data.content_hash };
-    }
-
-    const localPaths = new Set(local.keys());
-    const remoteToDelete = [...remote.values()].filter(file => !localPaths.has(file.path));
-    if (remoteToDelete.length) {
-      const { error } = await client
-        .from("codenost_project_files")
-        .delete()
-        .in("id", remoteToDelete.map(file => file.id));
-      if (error) throw error;
-      for (const file of remoteToDelete) delete known[file.path];
     }
 
     pcn.cloud.files = known;
@@ -337,19 +416,33 @@ function createSupabaseService({ userDataPath }) {
   }
 
   async function resolveConflict(projectPath, projectId, conflict, choice) {
+    const target = path.join(projectPath, ...conflict.path.split("/"));
+
     if (choice === "remote") {
-      const target = path.join(projectPath, ...conflict.path.split("/"));
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, conflict.remote, "utf8");
+      if (conflict.remote === null) {
+        try { fs.rmSync(target, { force: true }); } catch {}
+      } else {
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, conflict.remote, "utf8");
+      }
       return { ok: true };
     }
 
     if (choice === "local") {
-      const content = fs.readFileSync(path.join(projectPath, ...conflict.path.split("/")), "utf8");
-      const { error } = await client
-        .from("codenost_project_files")
-        .upsert({ project_id: projectId, path: conflict.path, content }, { onConflict: "project_id,path" });
-      if (error) throw error;
+      if (conflict.local === null) {
+        const { error } = await client
+          .from("codenost_project_files")
+          .delete()
+          .eq("project_id", projectId)
+          .eq("path", conflict.path);
+        if (error) throw error;
+      } else {
+        const content = fs.readFileSync(target, "utf8");
+        const { error } = await client
+          .from("codenost_project_files")
+          .upsert({ project_id: projectId, path: conflict.path, content }, { onConflict: "project_id,path" });
+        if (error) throw error;
+      }
       return { ok: true };
     }
 
