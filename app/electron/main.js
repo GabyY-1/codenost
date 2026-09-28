@@ -155,6 +155,48 @@ function getShells() {
   return [{ id: path.basename(shellPath), label: path.basename(shellPath), command: shellPath, args: ["-i"] }];
 }
 
+function runProcess(command, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: process.env,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", data => stdout += data.toString());
+    child.stderr.on("data", data => stderr += data.toString());
+    child.on("error", reject);
+    child.on("exit", code => {
+      if (code === 0) resolve({ stdout, stderr });
+      else reject(new Error(stderr || stdout || command + " a échoué."));
+    });
+  });
+}
+
+async function cloneGithubProject({ url, location, cloud = true }) {
+  const value = String(url || "").trim();
+  if (!/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/i.test(value)) {
+    throw new Error("URL GitHub invalide.");
+  }
+
+  const base = location || path.join(os.homedir(), "CodeNost");
+  fs.mkdirSync(base, { recursive: true });
+
+  const repoName = value.split("/").pop().replace(/\.git$/i, "");
+  const target = path.join(base, repoName);
+  if (fs.existsSync(target)) throw new Error("Un dossier portant ce nom existe déjà.");
+
+  await runProcess("git", ["clone", value, target], base);
+  const project = openProject(target);
+  const config = project.config || {};
+  config.cloud = { ...(config.cloud || {}), enabled: Boolean(cloud) };
+  writeJson(path.join(target, ".pcn"), config);
+  return openProject(target);
+}
+
 function createTerminal(projectPath, requestedShell) {
   const shells = getShells();
   const shellInfo = shells.find(item => item.id === requestedShell) || shells[0];
@@ -262,6 +304,9 @@ app.whenReady().then(() => {
     const result = await dialog.showOpenDialog(mainWindow, { properties: ["openDirectory"] });
     if (result.canceled) return null;
     return rememberProject(openProject(result.filePaths[0]));
+  });
+  ipcMain.handle("projects:clone-github", async (_event, payload) => {
+    return rememberProject(await cloneGithubProject(payload));
   });
   ipcMain.handle("projects:open", (_event, projectPath) => rememberProject(openProject(projectPath)));
   ipcMain.handle("projects:remove-recent", (_event, projectPath) => {
