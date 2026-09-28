@@ -150,14 +150,17 @@
       case "preview":
         await window.CodeNostEditor.startPreview();
         break;
+      case "run-project":
+        await window.CodeNostEditor.runProjectCommand("run");
+        break;
+      case "build-project":
+        await window.CodeNostEditor.runProjectCommand("build");
+        break;
       case "new-terminal":
         await window.CodeNostEditor.createTerminal();
         break;
-      case "docs":
-        await window.codenost.system.openExternal("https://codenost.com/docs");
-        break;
       case "website":
-        await window.codenost.system.openExternal("https://codenost.com");
+        await window.codenost.system.openExternal("https://gabyy-1.github.io/codenost/");
         break;
       case "about":
         window.CodeNostUI.notify("CodeNost 0.1.0 — environnement de développement desktop.");
@@ -308,6 +311,11 @@
       if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         await window.CodeNostEditor.saveActiveFile();
+      }
+
+      if (event.key === "F5") {
+        event.preventDefault();
+        await window.CodeNostEditor.runProjectCommand("run");
       }
 
       if (event.key === "Escape") {
