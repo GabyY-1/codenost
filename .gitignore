@@ -1,0 +1,10 @@
+# CodeNost desktop
+app/node_modules/
+app/dist/
+app/.env
+app/*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
