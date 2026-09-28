@@ -21,6 +21,7 @@
     bindSettings();
     bindHome();
     bindGlobalShortcuts();
+    window.CodeNostAI?.init();
 
     state.auth = await window.codenost.auth.status();
     applyAuthState(state.auth);
@@ -42,6 +43,7 @@
       const label = document.getElementById("accountLabel");
       label.textContent = auth.user?.email || (auth.devBypass ? "Développement" : "Compte");
       document.getElementById("authMessage").textContent = "";
+      window.CodeNostAI?.refreshHistory();
     } else {
       window.CodeNostUI.showAuth();
     }
