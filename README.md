@@ -1,39 +1,28 @@
 # CodeNost
 
-Prototype fonctionnel du logiciel CodeNost.
+CodeNost contient deux parties séparées :
 
-## Ce qui est déjà présent
+- la racine du repository : **site vitrine CodeNost**
+- `/app` : **logiciel desktop CodeNost**
 
-- écran d'accueil du logiciel
-- écran de connexion préparé
-- mode local sans compte
-- page Projets sans fausses données
-- création de projet
-- modèles : Vide, Site statique, JavaScript, TypeScript, Python, Node.js, React, Vite
-- stockage local des projets
-- explorateur de fichiers
-- éditeur de code
-- création de fichiers
-- sauvegarde locale
-- aperçu HTML/CSS/JavaScript
-- console
-- panneau Chat IA prêt à connecter
-- paramètres et compte
+Le site et le logiciel ne doivent pas être confondus.
 
-Les langages CN et CWSF ne sont volontairement pas intégrés dans cette version.
+## Logiciel
 
-## Test
+Le logiciel est une application Electron.
 
-Ouvrir `index.html` dans un navigateur ou publier le repo avec GitHub Pages.
+```bash
+cd app
+npm install
+npm run dev
+```
 
-## Plus tard
+La documentation technique du logiciel se trouve dans `app/README.md`.
 
-La version desktop pourra reprendre cette interface et ajouter :
+## Site
 
-- vraie authentification
-- GitHub OAuth
-- terminal système
-- runners réels
-- gestion de dossiers du PC
-- plugins/extensions
-- packaging Windows/Linux/macOS
+Le site vitrine reste un site statique HTML/CSS/JavaScript et peut être publié avec GitHub Pages.
+
+## Développement
+
+Les vérifications de syntaxe sont exécutées automatiquement avec GitHub Actions.
