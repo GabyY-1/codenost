@@ -26,8 +26,11 @@
       { label: "Paramètres", action: "settings", shortcut: "Ctrl+," }
     ],
     project: [
-      { label: "Ouvrir la configuration .pcn", action: "open-pcn" },
+      { label: "Exécuter", action: "run-project", shortcut: "F5" },
+      { label: "Build", action: "build-project" },
       { label: "Lancer la preview", action: "preview" },
+      { separator: true },
+      { label: "Ouvrir la configuration .pcn", action: "open-pcn" },
       { label: "Synchroniser", action: "sync", disabled: true }
     ],
     terminal: [
