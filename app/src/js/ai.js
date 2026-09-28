@@ -173,12 +173,69 @@
 
     if (status) status.textContent = "Application…";
 
+    let before = null;
+    try {
+      before = await window.CodeNostEditor.getAiActionPreview(action);
+    } catch {}
+
     try {
       const result = await window.CodeNostEditor.applyAiAction(action);
       if (result?.ok === false) throw new Error("Action non appliquée.");
       card.classList.add("is-applied");
       if (status) status.textContent = "Appliqué";
       window.CodeNostUI.notify(actionName(action) + " : terminé.", "success");
+
+      if (action.type !== "terminal" && before) {
+        const undoRow = document.createElement("div");
+        undoRow.className = "ai-action-buttons";
+        const undo = document.createElement("button");
+        undo.className = "secondary-button compact";
+        undo.type = "button";
+        undo.textContent = "Annuler cette action";
+
+        undo.addEventListener("click", async () => {
+          undo.disabled = true;
+          try {
+            if (action.type === "write_file") {
+              if (before.exists) {
+                await window.CodeNostEditor.applyAiAction({
+                  type: "write_file",
+                  path: action.path,
+                  content: before.before || ""
+                });
+              } else {
+                await window.CodeNostEditor.applyAiAction({
+                  type: "delete_file",
+                  path: action.path
+                });
+              }
+            } else if (action.type === "delete_file") {
+              await window.CodeNostEditor.applyAiAction({
+                type: "write_file",
+                path: action.path,
+                content: before.before || ""
+              });
+            } else if (action.type === "create_folder") {
+              await window.CodeNostEditor.applyAiAction({
+                type: "delete_file",
+                path: action.path
+              });
+            }
+
+            card.classList.remove("is-applied");
+            card.classList.add("is-skipped");
+            if (status) status.textContent = "Annulé";
+            undo.remove();
+            window.CodeNostUI.notify("Modification IA annulée.", "success");
+          } catch (error) {
+            undo.disabled = false;
+            window.CodeNostUI.notify(error.message || String(error), "error");
+          }
+        });
+
+        undoRow.appendChild(undo);
+        card.appendChild(undoRow);
+      }
     } catch (error) {
       card.classList.add("is-error");
       if (status) status.textContent = "Erreur";
