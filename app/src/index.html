@@ -114,25 +114,34 @@
               </button>
             </div>
 
+            <div class="ai-thread-bar">
+              <select id="homeAiThreads" aria-label="Historique IA">
+                <option value="">Nouvelle conversation</option>
+              </select>
+              <button id="homeAiNewThread" class="mini-icon" type="button" title="Nouvelle conversation">
+                <span data-icon="plus"></span>
+              </button>
+            </div>
+
             <div id="homeAiMessages" class="ai-messages">
               <div class="empty-ai">
                 <span data-icon="sparkles"></span>
-                <p>L'architecture IA est prête à recevoir un fournisseur.</p>
-                <small>Aucun modèle n'est configuré pour le moment.</small>
+                <p>Que veux-tu coder ?</p>
+                <small>Pose une question ou ouvre un projet pour que l'IA puisse agir dessus.</small>
               </div>
             </div>
 
             <div class="ai-quick-actions">
-              <button type="button" disabled>Créer un projet</button>
-              <button type="button" disabled>Analyser un projet</button>
+              <button id="aiCreateProjectQuick" type="button">Créer un projet</button>
+              <button id="aiNewChatQuick" type="button">Nouveau chat</button>
             </div>
 
             <form id="homeAiForm" class="ai-input-row">
-              <button class="icon-button" type="button" disabled title="Pièce jointe">
+              <button class="icon-button" type="button" disabled title="Pièces jointes bientôt disponibles">
                 <span data-icon="paperclip"></span>
               </button>
-              <textarea id="homeAiInput" rows="1" placeholder="L'IA sera disponible après configuration" disabled></textarea>
-              <button class="icon-button primary-icon" type="submit" disabled>
+              <textarea id="homeAiInput" rows="1" placeholder="Demander à CodeNost…"></textarea>
+              <button class="icon-button primary-icon" type="submit" title="Envoyer">
                 <span data-icon="arrow-up"></span>
               </button>
             </form>
@@ -357,11 +366,33 @@
 
               <div class="right-view" data-right-view="ai">
                 <div class="ai-editor-panel">
-                  <div class="empty-ai">
-                    <span data-icon="sparkles"></span>
-                    <p>Assistant de projet</p>
-                    <small>L'IA n'est pas encore connectée à un modèle.</small>
+                  <div class="ai-thread-bar">
+                    <select id="editorAiThreads" aria-label="Historique IA du projet">
+                      <option value="">Nouvelle conversation</option>
+                    </select>
+                    <button id="editorAiNewThread" class="mini-icon" type="button" title="Nouvelle conversation">
+                      <span data-icon="plus"></span>
+                    </button>
                   </div>
+
+                  <div id="editorAiMessages" class="ai-messages">
+                    <div class="empty-ai">
+                      <span data-icon="sparkles"></span>
+                      <p>Assistant de projet</p>
+                      <small>L'IA peut lire le projet et proposer des modifications.</small>
+                    </div>
+                  </div>
+
+                  <form id="editorAiForm" class="ai-input-row">
+                    <button class="icon-button" type="button" disabled title="Pièces jointes bientôt disponibles">
+                      <span data-icon="paperclip"></span>
+                    </button>
+                    <textarea id="editorAiInput" rows="1" placeholder="Modifier, expliquer, corriger…"></textarea>
+                    <button class="icon-button primary-icon" type="submit" title="Envoyer">
+                      <span data-icon="arrow-up"></span>
+                    </button>
+                  </form>
+
                   <div class="ai-permission-row">
                     <span>Mode IA</span>
                     <select id="aiModeSelect">
@@ -559,6 +590,7 @@
   <script src="js/ui.js"></script>
   <script src="js/projects.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
