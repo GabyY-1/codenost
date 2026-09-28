@@ -513,6 +513,26 @@
       </div>
     </dialog>
 
+    <dialog id="cloudConflictDialog" class="dialog-shell small-dialog">
+      <div class="prompt-dialog">
+        <div class="dialog-header">
+          <div>
+            <span class="panel-kicker">Cloud CodeNost</span>
+            <h2>Conflit de fichier</h2>
+          </div>
+        </div>
+        <p id="cloudConflictText" class="subtle"></p>
+        <div class="settings-info">
+          Le fichier a été modifié à la fois sur cet ordinateur et dans le cloud.
+          Choisis la version à conserver.
+        </div>
+        <div class="prompt-actions">
+          <button id="keepCloudConflict" class="secondary-button" type="button">Garder Cloud</button>
+          <button id="keepLocalConflict" class="primary-button" type="button">Garder Local</button>
+        </div>
+      </div>
+    </dialog>
+
     <dialog id="textPromptDialog" class="dialog-shell small-dialog">
       <form id="textPromptForm" method="dialog" class="prompt-dialog">
         <div class="dialog-header">
