@@ -169,12 +169,13 @@
       case "build-project":
         await window.CodeNostEditor.runProjectCommand("build");
         break;
+      case "sync":
+        document.getElementById("syncButton")?.click();
+        break;
       case "new-terminal":
         await window.CodeNostEditor.createTerminal();
         break;
-      case "website":
-        await window.codenost.system.openExternal("https://gabyy-1.github.io/codenost/");
-        break;
+
       case "about":
         window.CodeNostUI.notify("CodeNost 0.1.0 — environnement de développement desktop.");
         break;
@@ -405,6 +406,12 @@
       if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         await window.CodeNostEditor.saveActiveFile();
+      }
+
+      if (mod && event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        window.CodeNostUI.selectSidebar("search");
+        setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 0);
       }
 
       if (event.key === "F5") {
