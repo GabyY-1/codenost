@@ -551,6 +551,227 @@
     output.scrollTop = output.scrollHeight;
   }
 
+  function flattenTree(nodes, out = []) {
+    for (const item of nodes || []) {
+      if (item.type === "file") out.push(item.path);
+      if (item.type === "folder") flattenTree(item.children || [], out);
+    }
+    return out;
+  }
+
+  function getProjectId() {
+    if (!state.project) return null;
+    if (state.project.config?.cloud?.projectId) return state.project.config.cloud.projectId;
+    if (String(state.project.path || "").startsWith("cloud://")) {
+      return String(state.project.path).slice("cloud://".length);
+    }
+    return null;
+  }
+
+  async function buildAiContext() {
+    if (!state.project) {
+      return {
+        platform: window.codenost.platform,
+        project: null,
+        activeFile: null,
+        files: {},
+        tree: [],
+        output: "",
+        problems: ""
+      };
+    }
+
+    await saveAll();
+
+    let config = {};
+    try {
+      config = await window.codenost.projects.readConfig(state.project.path);
+    } catch {}
+
+    const paths = flattenTree(state.tree);
+    const ordered = state.activeFile
+      ? [state.activeFile, ...paths.filter(path => path !== state.activeFile)]
+      : paths;
+
+    const files = {};
+    let total = 0;
+    const maxTotal = 100000;
+    const maxPerFile = 20000;
+
+    for (const filePath of ordered) {
+      if (total >= maxTotal) break;
+
+      try {
+        const content = await window.codenost.projects.readFile(state.project.path, filePath);
+        if (typeof content !== "string") continue;
+
+        const remaining = Math.max(0, maxTotal - total);
+        const limit = Math.min(maxPerFile, remaining);
+        files[filePath] = content.length > limit
+          ? content.slice(0, limit) + "\n/* ... contenu tronqué par CodeNost ... */"
+          : content;
+        total += files[filePath].length;
+      } catch {}
+    }
+
+    return {
+      platform: window.codenost.platform,
+      project: {
+        name: state.project.name,
+        path: state.project.path,
+        type: config?.type || state.project.config?.type || null,
+        config
+      },
+      activeFile: state.activeFile,
+      files,
+      tree: paths,
+      output: (document.getElementById("outputView")?.textContent || "").slice(-6000),
+      problems: (document.getElementById("problemsView")?.textContent || "").slice(-4000)
+    };
+  }
+
+  async function getAiActionPreview(action) {
+    if (!action || !state.project) return null;
+
+    if (action.type === "write_file") {
+      let before = "";
+      let exists = true;
+      try {
+        before = await window.codenost.projects.readFile(state.project.path, action.path);
+      } catch {
+        exists = false;
+      }
+      return {
+        type: action.type,
+        path: action.path,
+        before,
+        after: action.content || "",
+        exists
+      };
+    }
+
+    if (action.type === "delete_file") {
+      let before = "";
+      try {
+        before = await window.codenost.projects.readFile(state.project.path, action.path);
+      } catch {}
+      return {
+        type: action.type,
+        path: action.path,
+        before,
+        after: "",
+        exists: true
+      };
+    }
+
+    if (action.type === "create_folder") {
+      return {
+        type: action.type,
+        path: action.path,
+        before: "",
+        after: "Créer le dossier " + action.path,
+        exists: false
+      };
+    }
+
+    if (action.type === "terminal") {
+      return {
+        type: action.type,
+        path: "",
+        before: "",
+        after: action.command || "",
+        exists: false
+      };
+    }
+
+    return null;
+  }
+
+  async function runTerminalCommand(command) {
+    if (!state.project || !command) return false;
+
+    let terminalId = state.activeTerminal;
+    if (!terminalId || !state.terminals.has(terminalId)) {
+      terminalId = await createTerminal();
+    }
+
+    if (!terminalId) {
+      window.CodeNostUI.notify("Le terminal système n'est pas disponible sur cette plateforme.", "error");
+      return false;
+    }
+
+    window.CodeNostUI.selectBottom("terminal");
+    await window.codenost.terminal.write(terminalId, command + "\n");
+    appendOutput("Commande IA: " + command);
+    return true;
+  }
+
+  async function applyAiAction(action) {
+    if (!state.project || !action) {
+      throw new Error("Aucun projet ouvert.");
+    }
+
+    if (action.type === "write_file") {
+      await window.codenost.projects.writeFile(
+        state.project.path,
+        action.path,
+        action.content || ""
+      );
+
+      const open = state.openFiles.get(action.path);
+      if (open) {
+        open.model.setValue(action.content || "");
+        open.savedValue = action.content || "";
+        open.dirty = false;
+      }
+
+      await refreshTree();
+      renderTabs();
+
+      if (state.activeFile === action.path) {
+        renderBreadcrumbs();
+        updateStatus();
+      }
+
+      if (state.previewUrl && state.settings?.previewAutoReload) {
+        reloadPreview();
+      }
+
+      return { ok: true };
+    }
+
+    if (action.type === "delete_file") {
+      await window.codenost.projects.deleteEntry(state.project.path, action.path);
+
+      const open = state.openFiles.get(action.path);
+      if (open) {
+        try { open.model.dispose(); } catch {}
+        state.openFiles.delete(action.path);
+        if (state.activeFile === action.path) clearEditor();
+      }
+
+      await refreshTree();
+      renderTabs();
+      return { ok: true };
+    }
+
+    if (action.type === "create_folder") {
+      try {
+        await window.codenost.projects.createFolder(state.project.path, action.path);
+      } catch (error) {
+        if (!String(error?.message || error).toLowerCase().includes("existe")) throw error;
+      }
+      await refreshTree();
+      return { ok: true };
+    }
+
+    if (action.type === "terminal") {
+      return { ok: await runTerminalCommand(action.command) };
+    }
+
+    throw new Error("Action IA inconnue.");
+  }
+
   function bind() {
     document.getElementById("newFileButton").addEventListener("click", () => createEntry("file"));
     document.getElementById("newFolderButton").addEventListener("click", () => createEntry("folder"));
@@ -616,6 +837,11 @@
     saveAll,
     createTerminal,
     runProjectCommand,
+    runTerminalCommand,
+    buildAiContext,
+    getProjectId,
+    getAiActionPreview,
+    applyAiAction,
     startPreview,
     appendOutput
   };
