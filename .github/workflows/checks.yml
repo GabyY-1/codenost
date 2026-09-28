@@ -21,5 +21,6 @@ jobs:
       - run: node --check app/src/js/ui.js
       - run: node --check app/src/js/ai.js
       - run: node --check app/src/js/projects.js
+      - run: node --check app/src/js/extensions.js
       - run: node --check app/src/js/editor.js
       - run: node --check app/src/js/app.js
