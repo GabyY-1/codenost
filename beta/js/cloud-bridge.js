@@ -388,6 +388,46 @@
     }
   };
 
+  base.ai = {
+    ask: async payload => {
+      await user();
+      const { data, error } = await sb.functions.invoke("codenost-ai", { body: payload });
+      if (error) {
+        let message = error.message || "Erreur IA CodeNost.";
+        try {
+          const body = await error.context?.json();
+          if (body?.error) message = body.error;
+        } catch {}
+        throw new Error(message);
+      }
+      return data;
+    },
+
+    threads: async projectId => {
+      await user();
+      let query = sb
+        .from("codenost_ai_threads")
+        .select("id,title,project_id,created_at,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(30);
+      if (projectId) query = query.eq("project_id", projectId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+
+    messages: async threadId => {
+      await user();
+      const { data, error } = await sb
+        .from("codenost_ai_messages")
+        .select("id,role,content,actions,created_at")
+        .eq("thread_id", threadId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    }
+  };
+
   base.settings = {
     read: async () => {
       const { data: sessionData } = await sb.auth.getSession();
