@@ -445,6 +445,7 @@
           <button class="settings-nav-item" data-settings-page="ai"><span data-icon="sparkles"></span> IA</button>
           <button class="settings-nav-item" data-settings-page="cloud"><span data-icon="cloud"></span> Cloud</button>
           <button class="settings-nav-item" data-settings-page="preview"><span data-icon="monitor"></span> Preview</button>
+          <button class="settings-nav-item" data-settings-page="account"><span data-icon="log-in"></span> Compte</button>
         </aside>
 
         <section class="settings-content">
@@ -492,6 +493,13 @@
 
           <div class="settings-page" data-settings-content="preview">
             <label class="toggle-row"><span><strong>Rechargement automatique</strong><small>Actualiser la preview après sauvegarde</small></span><input id="settingPreviewReload" type="checkbox"></label>
+          </div>
+
+          <div class="settings-page" data-settings-content="account">
+            <div class="setting-control">
+              <span><strong>Session CodeNost</strong><small id="settingsAccountEmail">Compte connecté</small></span>
+              <button id="logoutButton" class="secondary-button" type="button">Déconnexion</button>
+            </div>
           </div>
         </section>
       </div>
