@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("codenost", {
     chooseLocation: () => ipcRenderer.invoke("projects:choose-location"),
     create: (payload) => ipcRenderer.invoke("projects:create", payload),
     importFolder: () => ipcRenderer.invoke("projects:import-folder"),
+    cloneGithub: (payload) => ipcRenderer.invoke("projects:clone-github", payload),
     open: (projectPath) => ipcRenderer.invoke("projects:open", projectPath),
     removeRecent: (projectPath) => ipcRenderer.invoke("projects:remove-recent", projectPath),
     readTree: (projectPath) => ipcRenderer.invoke("projects:read-tree", projectPath),
