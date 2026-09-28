@@ -7,7 +7,13 @@ contextBridge.exposeInMainWorld("codenost", {
     status: () => ipcRenderer.invoke("auth:status"),
     login: (payload) => ipcRenderer.invoke("auth:login", payload),
     logout: () => ipcRenderer.invoke("auth:logout"),
-    openSignup: () => ipcRenderer.invoke("auth:open-signup")
+    githubLogin: () => ipcRenderer.invoke("auth:github-login"),
+    openSignup: () => ipcRenderer.invoke("auth:open-signup"),
+    onChanged: (callback) => {
+      const handler = (_event, payload) => callback(payload);
+      ipcRenderer.on("auth:changed", handler);
+      return () => ipcRenderer.removeListener("auth:changed", handler);
+    }
   },
 
   projects: {
@@ -50,6 +56,11 @@ contextBridge.exposeInMainWorld("codenost", {
     start: (projectPath) => ipcRenderer.invoke("preview:start", projectPath),
     stop: () => ipcRenderer.invoke("preview:stop"),
     openWindow: (url) => ipcRenderer.invoke("preview:open-window", url)
+  },
+
+  cloud: {
+    syncProject: (projectPath) => ipcRenderer.invoke("cloud:sync-project", projectPath),
+    resolveConflict: (payload) => ipcRenderer.invoke("cloud:resolve-conflict", payload)
   },
 
   settings: {
