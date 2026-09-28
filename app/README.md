@@ -1,6 +1,6 @@
 # CodeNost Desktop
 
-Le logiciel CodeNost est séparé du site vitrine situé à la racine du repository.
+CodeNost est une application desktop Electron. La version web BETA a été abandonnée.
 
 ## Lancer en développement
 
@@ -10,23 +10,6 @@ npm install
 npm run dev
 ```
 
-Pour tester l'interface avant que le backend d'authentification soit disponible :
-
-### Windows PowerShell
-
-```powershell
-$env:CODENOST_DEV_BYPASS="1"
-npm run dev
-```
-
-### Linux / macOS
-
-```bash
-CODENOST_DEV_BYPASS=1 npm run dev
-```
-
-Ce bypass est réservé au développement. En fonctionnement normal, un compte CodeNost est obligatoire.
-
 ## Structure
 
 ```text
@@ -34,7 +17,8 @@ app/
 ├── electron/
 │   ├── main.js
 │   ├── preload.js
-│   └── project-service.js
+│   ├── project-service.js
+│   └── supabase-service.js
 ├── src/
 │   ├── index.html
 │   ├── styles/
@@ -45,45 +29,62 @@ app/
 ## Fonctionnel
 
 - application desktop Electron
-- connexion obligatoire avec architecture backend
-- mode de développement explicite
+- authentification Supabase obligatoire
+- email + mot de passe
+- session persistante
+- OAuth GitHub
 - projets réels sur le disque
 - fichier projet `.pcn`
 - création de projets par assistant
 - import de dossiers existants
 - templates HTML/CSS/JS, JavaScript, TypeScript, Node.js, Python, React et Vite
-- liste des projets récents
-- explorateur de fichiers
-- création de fichiers et dossiers
 - Monaco Editor
+- explorateur de fichiers
 - onglets
 - breadcrumbs
-- numéros de lignes
-- minimap configurable
-- sauvegarde et sauvegarde automatique
-- terminal intégré avec plusieurs terminaux
+- sauvegarde automatique
+- terminal intégré
 - panneau Terminal / Problèmes / Sortie
 - preview statique locale
-- modes desktop / tablette / téléphone
-- preview dans une fenêtre CodeNost séparée
-- thème sombre et thème clair
 - paramètres persistants
-- palette de commandes simple
-- panneaux masquables
+- CodeNost Cloud avec Supabase
+- synchronisation Local / Cloud
+- résolution de conflits
+- projets Cloud téléchargeables sur Desktop
+- IA CodeNost via Supabase Edge Function + OpenRouter
+- historique IA
+- actions IA sur les fichiers et le terminal
+- modes IA Direct / Confirmation / Review
 
-## Préparé mais volontairement non simulé
+## Supabase
 
-Ces fonctions nécessitent encore leurs services réels :
+Projet Supabase :
 
-- authentification CodeNost en production
-- OAuth GitHub
-- Cloud CodeNost
-- IA CodeNost
-- synchronisation et résolution de conflits cloud
-- Git avancé
-- catalogue d'extensions officielles
+```text
+txblwoqdoeycyuzbzgac
+```
 
-Les interfaces correspondantes indiquent clairement leur état au lieu de présenter de fausses fonctionnalités.
+Redirect URL GitHub OAuth pour l'application desktop :
+
+```text
+codenost://auth/callback
+```
+
+## IA CodeNost
+
+Le modèle principal est configuré via le secret Supabase :
+
+```text
+OPENROUTER_MODEL
+```
+
+Le fournisseur utilise :
+
+```text
+OPENROUTER_API_KEY
+```
+
+La clé API ne doit jamais être placée dans le repository.
 
 ## Build desktop
 
@@ -92,31 +93,3 @@ npm run dist
 ```
 
 Electron Builder est configuré pour Windows, Linux et macOS.
-
-
-## Supabase
-
-CodeNost utilise le projet Supabase `txblwoqdoeycyuzbzgac`.
-
-Fonctions branchées :
-- email + mot de passe
-- session persistante
-- GitHub OAuth
-- paramètres cloud
-- projets cloud
-- fichiers cloud par projet
-- synchronisation desktop / cloud
-- téléchargement d'un projet cloud vers Desktop
-- gestion de conflits Local / Cloud
-
-Pour GitHub OAuth dans la version desktop, ajouter cette URL à la liste des Redirect URLs Supabase :
-
-```text
-codenost://auth/callback
-```
-
-Pour la BETA web :
-
-```text
-https://gabyy-1.github.io/codenost/beta/
-```
