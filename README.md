@@ -1,15 +1,14 @@
 # CodeNost
 
-CodeNost contient deux parties séparées :
+Ce repository contient désormais uniquement le **logiciel desktop CodeNost**.
 
-- la racine du repository : **site vitrine CodeNost**
-- `/app` : **logiciel desktop CodeNost**
+Le code de l'application se trouve dans :
 
-Le site et le logiciel ne doivent pas être confondus.
+```text
+/app
+```
 
-## Logiciel
-
-Le logiciel est une application Electron.
+## Développement
 
 ```bash
 cd app
@@ -17,12 +16,6 @@ npm install
 npm run dev
 ```
 
-La documentation technique du logiciel se trouve dans `app/README.md`.
+La documentation technique est disponible dans `app/README.md`.
 
-## Site
-
-Le site vitrine reste un site statique HTML/CSS/JavaScript et peut être publié avec GitHub Pages.
-
-## Développement
-
-Les vérifications de syntaxe sont exécutées automatiquement avec GitHub Actions.
+Le site vitrine CodeNost n'est plus stocké dans ce repository.
