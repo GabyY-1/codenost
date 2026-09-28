@@ -147,18 +147,18 @@ async function login(payload) {
 function getShells() {
   if (process.platform === "win32") {
     return [
-      { id: "powershell", label: "PowerShell", command: "powershell.exe" },
-      { id: "cmd", label: "Invite de commandes", command: "cmd.exe" }
+      { id: "powershell", label: "PowerShell", command: "powershell.exe", args: ["-NoLogo"] },
+      { id: "cmd", label: "Invite de commandes", command: "cmd.exe", args: [] }
     ];
   }
   const shellPath = process.env.SHELL || "/bin/bash";
-  return [{ id: path.basename(shellPath), label: path.basename(shellPath), command: shellPath }];
+  return [{ id: path.basename(shellPath), label: path.basename(shellPath), command: shellPath, args: ["-i"] }];
 }
 
 function createTerminal(projectPath, requestedShell) {
   const shells = getShells();
   const shellInfo = shells.find(item => item.id === requestedShell) || shells[0];
-  const child = spawn(shellInfo.command, [], {
+  const child = spawn(shellInfo.command, shellInfo.args || [], {
     cwd: projectPath || os.homedir(),
     env: process.env,
     shell: false,
@@ -294,6 +294,19 @@ app.whenReady().then(() => {
 
   ipcMain.handle("preview:start", (_event, projectPath) => startPreview(projectPath));
   ipcMain.handle("preview:stop", () => { stopPreview(); return true; });
+  ipcMain.handle("preview:open-window", (_event, url) => {
+    if (!url || !/^https?:\/\//i.test(url)) return false;
+    const previewWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      minWidth: 500,
+      minHeight: 400,
+      title: "CodeNost Preview",
+      webPreferences: { contextIsolation: true, nodeIntegration: false }
+    });
+    previewWindow.loadURL(url);
+    return true;
+  });
 
   ipcMain.handle("settings:read", () => readSettings());
   ipcMain.handle("settings:write", (_event, settings) => saveSettings(settings));
