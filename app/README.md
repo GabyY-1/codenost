@@ -92,3 +92,31 @@ npm run dist
 ```
 
 Electron Builder est configuré pour Windows, Linux et macOS.
+
+
+## Supabase
+
+CodeNost utilise le projet Supabase `txblwoqdoeycyuzbzgac`.
+
+Fonctions branchées :
+- email + mot de passe
+- session persistante
+- GitHub OAuth
+- paramètres cloud
+- projets cloud
+- fichiers cloud par projet
+- synchronisation desktop / cloud
+- téléchargement d'un projet cloud vers Desktop
+- gestion de conflits Local / Cloud
+
+Pour GitHub OAuth dans la version desktop, ajouter cette URL à la liste des Redirect URLs Supabase :
+
+```text
+codenost://auth/callback
+```
+
+Pour la BETA web :
+
+```text
+https://gabyy-1.github.io/codenost/beta/
+```
