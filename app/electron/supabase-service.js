@@ -148,6 +148,47 @@ function createSupabaseService({ userDataPath }) {
     return result;
   }
 
+  async function askAi(payload) {
+    await getUser();
+    const { data, error } = await client.functions.invoke("codenost-ai", {
+      body: payload
+    });
+    if (error) {
+      let message = error.message || "Erreur IA CodeNost.";
+      try {
+        const body = await error.context?.json();
+        if (body?.error) message = body.error;
+      } catch {}
+      throw new Error(message);
+    }
+    return data;
+  }
+
+  async function listAiThreads(projectId = null) {
+    await getUser();
+    let query = client
+      .from("codenost_ai_threads")
+      .select("id,title,project_id,created_at,updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(30);
+
+    if (projectId) query = query.eq("project_id", projectId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function listAiMessages(threadId) {
+    await getUser();
+    const { data, error } = await client
+      .from("codenost_ai_messages")
+      .select("id,role,content,actions,created_at")
+      .eq("thread_id", threadId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
   async function listCloudProjects() {
     await getUser();
     const { data, error } = await client
@@ -458,6 +499,9 @@ function createSupabaseService({ userDataPath }) {
     handleAuthCallback,
     readCloudSettings,
     writeCloudSettings,
+    askAi,
+    listAiThreads,
+    listAiMessages,
     listCloudProjects,
     downloadProject,
     syncProject,
