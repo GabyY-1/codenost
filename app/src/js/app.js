@@ -24,6 +24,14 @@
 
     state.auth = await window.codenost.auth.status();
     applyAuthState(state.auth);
+
+    window.codenost.auth.onChanged?.(auth => {
+      if (auth?.error) {
+        document.getElementById("authMessage").textContent = auth.error;
+        return;
+      }
+      applyAuthState(auth);
+    });
   }
 
   function applyAuthState(auth) {
@@ -77,13 +85,15 @@
     });
 
     document.getElementById("githubLogin").addEventListener("click", async () => {
-      const status = await window.codenost.auth.status();
       const message = document.getElementById("authMessage");
-      if (!status.configured) {
-        message.textContent = "La connexion GitHub nécessite le backend d'authentification CodeNost, qui n'est pas encore configuré.";
-        return;
+      message.textContent = "Ouverture de GitHub…";
+      try {
+        const result = await window.codenost.auth.githubLogin();
+        if (!result?.ok) message.textContent = result?.error || "Connexion GitHub impossible.";
+        else message.textContent = "Termine la connexion dans ton navigateur.";
+      } catch (error) {
+        message.textContent = error.message || String(error);
       }
-      message.textContent = "Le flux GitHub desktop sera activé avec le backend d'authentification.";
     });
 
     document.getElementById("openSignup").addEventListener("click", () => window.codenost.auth.openSignup());
@@ -190,8 +200,48 @@
       window.CodeNostUI.toggleRight(false);
     });
 
-    document.getElementById("syncButton").addEventListener("click", () => {
-      window.CodeNostUI.notify("Le backend Cloud CodeNost n'est pas encore connecté.");
+    document.getElementById("syncButton").addEventListener("click", async () => {
+      const project = window.CodeNostEditor.state.project;
+      if (!project) {
+        window.CodeNostUI.notify("Ouvre d'abord un projet.");
+        return;
+      }
+
+      document.getElementById("statusSync").textContent = "Synchronisation…";
+      try {
+        let result = await window.codenost.cloud.syncProject(project.path);
+
+        if (result?.skipped) {
+          document.getElementById("statusSync").textContent = "Hors ligne";
+          window.CodeNostUI.notify(result.error || "Cloud désactivé.");
+          return;
+        }
+
+        if (result?.conflicts?.length) {
+          for (const conflict of result.conflicts) {
+            const choice = await resolveCloudConflict(conflict);
+            if (!choice) {
+              document.getElementById("statusSync").textContent = "Conflit";
+              return;
+            }
+            await window.codenost.cloud.resolveConflict({
+              projectPath: project.path,
+              projectId: result.projectId,
+              conflict,
+              choice
+            });
+          }
+          result = await window.codenost.cloud.syncProject(project.path);
+        }
+
+        if (!result?.ok) throw new Error(result?.error || "Synchronisation impossible.");
+
+        document.getElementById("statusSync").textContent = "Synchronisé";
+        window.CodeNostUI.notify(`${result.files} fichier(s) synchronisé(s).`, "success");
+      } catch (error) {
+        document.getElementById("statusSync").textContent = "Erreur Cloud";
+        window.CodeNostUI.notify(error.message || String(error), "error");
+      }
     });
 
     document.getElementById("quickCommand").addEventListener("click", async () => {
@@ -228,6 +278,36 @@
     document.getElementById("aiModeSelect").addEventListener("change", async event => {
       state.settings.aiMode = event.target.value;
       await saveSettings();
+    });
+  }
+
+  function resolveCloudConflict(conflict) {
+    return new Promise(resolve => {
+      const dialog = document.getElementById("cloudConflictDialog");
+      const text = document.getElementById("cloudConflictText");
+      const local = document.getElementById("keepLocalConflict");
+      const cloud = document.getElementById("keepCloudConflict");
+
+      text.textContent = conflict.path;
+
+      const finish = choice => {
+        local.removeEventListener("click", onLocal);
+        cloud.removeEventListener("click", onCloud);
+        dialog.removeEventListener("cancel", onCancel);
+        dialog.close();
+        resolve(choice);
+      };
+      const onLocal = () => finish("local");
+      const onCloud = () => finish("remote");
+      const onCancel = event => {
+        event.preventDefault();
+        finish(null);
+      };
+
+      local.addEventListener("click", onLocal);
+      cloud.addEventListener("click", onCloud);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
     });
   }
 
