@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
-    "check": "node --check electron/main.js && node --check electron/preload.js && node --check src/js/app.js && node --check src/js/editor.js && node --check src/js/projects.js && node --check src/js/ui.js",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check electron/project-service.js && node --check electron/supabase-service.js && node --check src/js/app.js && node --check src/js/editor.js && node --check src/js/projects.js && node --check src/js/ui.js",
     "dist": "electron-builder"
   },
   "devDependencies": {
@@ -43,6 +43,7 @@
   "dependencies": {
     "monaco-editor": "^0.52.2",
     "@xterm/xterm": "^5.5.0",
-    "@xterm/addon-fit": "^0.10.0"
+    "@xterm/addon-fit": "^0.10.0",
+    "@supabase/supabase-js": "^2.57.4"
   }
 }
