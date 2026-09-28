@@ -1,0 +1,30 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connexion — CodeNost</title><link rel="stylesheet" href="assets/css/site.css"></head><body>
+<header class="topbar"><a class="brand" href="index.html">CodeNost</a><a class="back" href="index.html"><i data-lucide="arrow-left"></i> back</a></header>
+<main class="auth-layout">
+  <section class="auth-panel">
+    <h1>Connexion</h1>
+    <div class="oauth-row">
+      <button class="oauth-btn"><i data-lucide="github"></i> GitHub</button>
+      <button class="oauth-btn"><i data-lucide="chrome"></i> Google</button>
+    </div>
+    <form class="form" onsubmit="return false">
+      <label>Adresse e-mail<input type="email" placeholder="adresse@email.fr"></label>
+      <label>Mot de passe
+        <div class="password-field">
+          <input id="login-password" type="password" placeholder="Mot de passe">
+          <button class="password-toggle" type="button" data-toggle-password="login-password" aria-label="Afficher le mot de passe"><i data-lucide="eye"></i></button>
+        </div>
+      </label>
+      <label class="remember"><input type="checkbox"> Rester connecté</label>
+      <button class="button primary full" type="submit">Connexion</button>
+    </form>
+    <p class="switch-note">Pas de compte ? <a href="inscription.html">Inscris-toi ici</a></p>
+  </section>
+  <section class="auth-panel">
+    <h1>Nouveau sur CodeNost ?</h1>
+    <p class="hero-text">Crée ton compte pour retrouver tes projets et tes paramètres sur tes appareils.</p>
+    <a class="button secondary" href="inscription.html">Créer un compte</a>
+  </section>
+</main>
+<script src="https://unpkg.com/lucide@latest"></script><script src="assets/js/site.js"></script><script>lucide.createIcons();</script>
+</body></html>
