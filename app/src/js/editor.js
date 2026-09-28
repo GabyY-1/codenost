@@ -7,6 +7,8 @@
     editor: null,
     monaco: null,
     saveTimer: null,
+    cloudSyncTimer: null,
+    searchTimer: null,
     terminals: new Map(),
     activeTerminal: null,
     previewUrl: null,
@@ -114,6 +116,7 @@
     window.CodeNostUI.showEditor(project.name);
     window.CodeNostAI?.onProjectChanged();
     await ensureTerminal();
+    await refreshGit();
     clearPreview();
   }
 
@@ -345,6 +348,8 @@
       if (state.settings?.previewAutoReload && state.previewUrl) {
         reloadPreview();
       }
+
+      scheduleCloudSync();
     } catch (error) {
       window.CodeNostUI.notify("Erreur de sauvegarde : " + (error.message || error), "error");
     }
@@ -459,6 +464,7 @@
     if (!item) return;
     setTimeout(() => {
       item.fit.fit();
+      window.codenost.terminal.resize(item.id, item.terminal.cols, item.terminal.rows);
       item.terminal.focus();
     }, 0);
   }
@@ -773,7 +779,227 @@
     throw new Error("Action IA inconnue.");
   }
 
+
+  function scheduleCloudSync() {
+    clearTimeout(state.cloudSyncTimer);
+    if (!state.project?.config?.cloud?.enabled) return;
+
+    state.cloudSyncTimer = setTimeout(async () => {
+      if (!state.project) return;
+      const status = document.getElementById("statusSync");
+      status.textContent = "Synchronisation…";
+
+      try {
+        const result = await window.codenost.cloud.syncProject(state.project.path);
+        if (result?.conflicts?.length) {
+          status.textContent = "Conflit";
+          window.CodeNostUI.notify("Conflit Cloud détecté. Utilise le bouton Synchroniser pour choisir la version.", "error");
+          return;
+        }
+        if (result?.ok) {
+          status.textContent = "Synchronisé";
+          try {
+            state.project.config = await window.codenost.projects.readConfig(state.project.path);
+          } catch {}
+        } else if (result?.skipped) {
+          status.textContent = "Hors ligne";
+        }
+      } catch {
+        status.textContent = "Cloud hors ligne";
+      }
+    }, 1500);
+  }
+
+  async function performGlobalSearch() {
+    const input = document.getElementById("globalSearchInput");
+    const resultsHost = document.getElementById("globalSearchResults");
+    const summary = document.getElementById("globalSearchSummary");
+    if (!input || !resultsHost || !summary) return;
+
+    const query = input.value.trim();
+    resultsHost.innerHTML = "";
+
+    if (!state.project || !query) {
+      summary.textContent = state.project ? "Saisis un terme pour rechercher." : "Ouvre un projet pour rechercher.";
+      return;
+    }
+
+    summary.textContent = "Recherche…";
+
+    try {
+      const results = await window.codenost.projects.search(state.project.path, query, { maxResults: 250 });
+      summary.textContent = results.length + " résultat(s)";
+
+      for (const result of results) {
+        const button = document.createElement("button");
+        button.className = "search-result-item";
+        button.type = "button";
+
+        const top = document.createElement("div");
+        top.className = "search-result-path";
+        top.textContent = result.path + (result.line ? ":" + result.line : "");
+
+        const preview = document.createElement("div");
+        preview.className = "search-result-preview";
+        preview.textContent = result.preview || "";
+
+        button.append(top, preview);
+        button.addEventListener("click", async () => {
+          await openFile(result.path);
+          if (result.line && state.editor) {
+            state.editor.setPosition({
+              lineNumber: result.line,
+              column: result.column || 1
+            });
+            state.editor.revealLineInCenter(result.line);
+            state.editor.focus();
+          }
+        });
+        resultsHost.appendChild(button);
+      }
+    } catch (error) {
+      summary.textContent = "Erreur de recherche";
+      window.CodeNostUI.notify(error.message || String(error), "error");
+    }
+  }
+
+  function scheduleSearch() {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(performGlobalSearch, 220);
+  }
+
+  function parseGitStatus(output) {
+    const lines = String(output || "").split(/\r?\n/).filter(Boolean);
+    let branch = "Git";
+    const changes = [];
+
+    for (const line of lines) {
+      if (line.startsWith("## ")) {
+        branch = line.slice(3).trim();
+        continue;
+      }
+      if (line.length >= 3) {
+        changes.push({
+          status: line.slice(0, 2).trim() || "?",
+          path: line.slice(3).trim()
+        });
+      }
+    }
+    return { branch, changes };
+  }
+
+  async function refreshGit() {
+    const branch = document.getElementById("gitBranchLabel");
+    const host = document.getElementById("gitChanges");
+    if (!branch || !host) return;
+
+    host.innerHTML = "";
+
+    if (!state.project) {
+      branch.textContent = "Ouvre un projet.";
+      return;
+    }
+
+    const result = await window.codenost.git.status(state.project.path);
+    if (!result.ok) {
+      branch.textContent = "Ce projet n'est pas encore un dépôt Git.";
+      const empty = document.createElement("div");
+      empty.className = "sidebar-tool-summary";
+      empty.textContent = "Initialise Git pour commencer le suivi des fichiers.";
+      host.appendChild(empty);
+      return;
+    }
+
+    const parsed = parseGitStatus(result.output);
+    branch.textContent = parsed.branch;
+
+    if (!parsed.changes.length) {
+      const empty = document.createElement("div");
+      empty.className = "sidebar-tool-summary";
+      empty.textContent = "Aucune modification.";
+      host.appendChild(empty);
+      return;
+    }
+
+    for (const change of parsed.changes) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "git-change-item";
+      const badge = document.createElement("span");
+      badge.textContent = change.status;
+      const name = document.createElement("span");
+      name.textContent = change.path;
+      row.append(badge, name);
+      row.addEventListener("click", () => openFile(change.path.replace(/^.* -> /, "")));
+      host.appendChild(row);
+    }
+  }
+
+  async function gitInit() {
+    if (!state.project) return;
+    const result = await window.codenost.git.init(state.project.path);
+    if (!result.ok) window.CodeNostUI.notify(result.error, "error");
+    else {
+      appendOutput(result.output || "Dépôt Git initialisé.");
+      await refreshGit();
+    }
+  }
+
+  async function gitCommit() {
+    if (!state.project) return;
+    const input = document.getElementById("gitCommitMessage");
+    const message = input?.value.trim();
+    if (!message) {
+      window.CodeNostUI.notify("Écris un message de commit.", "error");
+      return;
+    }
+
+    const add = await window.codenost.git.addAll(state.project.path);
+    if (!add.ok) {
+      window.CodeNostUI.notify(add.error, "error");
+      return;
+    }
+
+    const result = await window.codenost.git.commit(state.project.path, message);
+    if (!result.ok) {
+      window.CodeNostUI.notify(result.error, "error");
+      return;
+    }
+
+    input.value = "";
+    appendOutput(result.output || "Commit créé.");
+    await refreshGit();
+  }
+
+  async function gitPull() {
+    if (!state.project) return;
+    const result = await window.codenost.git.pull(state.project.path);
+    if (!result.ok) window.CodeNostUI.notify(result.error, "error");
+    else {
+      appendOutput(result.output || "Pull terminé.");
+      await refreshTree();
+      await refreshGit();
+    }
+  }
+
+  async function gitPush() {
+    if (!state.project) return;
+    const result = await window.codenost.git.push(state.project.path);
+    if (!result.ok) window.CodeNostUI.notify(result.error, "error");
+    else {
+      appendOutput(result.output || "Push terminé.");
+      await refreshGit();
+    }
+  }
+
   function bind() {
+    document.getElementById("globalSearchInput")?.addEventListener("input", scheduleSearch);
+    document.getElementById("refreshGitButton")?.addEventListener("click", refreshGit);
+    document.getElementById("gitInitButton")?.addEventListener("click", gitInit);
+    document.getElementById("gitCommitButton")?.addEventListener("click", gitCommit);
+    document.getElementById("gitPullButton")?.addEventListener("click", gitPull);
+    document.getElementById("gitPushButton")?.addEventListener("click", gitPush);
+
     document.getElementById("newFileButton").addEventListener("click", () => createEntry("file"));
     document.getElementById("newFolderButton").addEventListener("click", () => createEntry("folder"));
     document.getElementById("refreshTreeButton").addEventListener("click", refreshTree);
@@ -791,10 +1017,14 @@
 
     window.codenost.terminal.onData(handleTerminalData);
     window.codenost.terminal.onExit(handleTerminalExit);
+    window.codenost.preview.onLog?.(data => appendOutput(String(data).trimEnd()));
 
     window.addEventListener("resize", () => {
       const item = state.terminals.get(state.activeTerminal);
-      try { item?.fit.fit(); } catch {}
+      try {
+        item?.fit.fit();
+        if (item) window.codenost.terminal.resize(item.id, item.terminal.cols, item.terminal.rows);
+      } catch {}
     });
   }
 
@@ -843,6 +1073,8 @@
     getProjectId,
     getAiActionPreview,
     applyAiAction,
+    refreshGit,
+    performGlobalSearch,
     startPreview,
     appendOutput
   };
