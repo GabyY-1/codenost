@@ -272,6 +272,24 @@ function startStaticPreview(projectPath) {
   });
 }
 
+async function ensureProjectDependencies(projectPath) {
+  const packageFile = path.join(projectPath, "package.json");
+  const modulesDir = path.join(projectPath, "node_modules");
+  if (!fs.existsSync(packageFile) || fs.existsSync(modulesDir)) return { ok: true, installed: false };
+
+  mainWindow?.webContents.send("preview:log", "[CodeNost] Installation des dépendances…\n");
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+
+  try {
+    const result = await runProcess(npm, ["install"], projectPath);
+    if (result.stdout) mainWindow?.webContents.send("preview:log", result.stdout);
+    if (result.stderr) mainWindow?.webContents.send("preview:log", result.stderr);
+    return { ok: true, installed: true };
+  } catch (error) {
+    return { ok: false, error: "Installation des dépendances impossible : " + (error.message || error) };
+  }
+}
+
 function startDevServerPreview(projectPath, command) {
   return new Promise(resolve => {
     const isWin = process.platform === "win32";
@@ -343,6 +361,10 @@ async function startPreview(projectPath) {
   if (previewMode === "dev-server") {
     const command = config?.commands?.run;
     if (!command) return { ok: false, error: "Aucune commande de serveur de développement n'est définie dans .pcn." };
+
+    const dependencies = await ensureProjectDependencies(projectPath);
+    if (!dependencies.ok) return dependencies;
+
     return startDevServerPreview(projectPath, command);
   }
 
