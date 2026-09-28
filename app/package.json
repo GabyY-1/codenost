@@ -38,7 +38,15 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools"
-    }
+    },
+    "protocols": [
+      {
+        "name": "CodeNost",
+        "schemes": [
+          "codenost"
+        ]
+      }
+    ]
   },
   "dependencies": {
     "monaco-editor": "^0.52.2",
