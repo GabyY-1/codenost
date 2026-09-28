@@ -1,0 +1,53 @@
+name: Build CodeNost Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: CodeNost-Windows
+          - os: ubuntu-latest
+            artifact: CodeNost-Linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm install
+
+      - name: Rebuild native Electron dependencies
+        working-directory: app
+        run: npx electron-builder install-app-deps
+
+      - name: Check sources
+        working-directory: app
+        run: npm run check
+
+      - name: Build desktop packages
+        working-directory: app
+        run: npm run dist
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            app/dist/*.exe
+            app/dist/*.AppImage
+            app/dist/*.deb
+          if-no-files-found: error
