@@ -176,7 +176,18 @@
         if (!panel) return;
         panel.style.display = "none";
         document.querySelector(".home-view").style.gridTemplateColumns = "minmax(390px,1fr) 300px";
+        document.getElementById("restoreHomeAi").classList.remove("is-hidden");
       });
+    });
+
+    document.getElementById("restoreHomeAi").addEventListener("click", () => {
+      document.getElementById("homeAiPanel").style.display = "";
+      document.querySelector(".home-view").style.gridTemplateColumns = "";
+      document.getElementById("restoreHomeAi").classList.add("is-hidden");
+    });
+
+    document.getElementById("showRightPanelButton").addEventListener("click", () => {
+      window.CodeNostUI.toggleRight(false);
     });
 
     document.getElementById("syncButton").addEventListener("click", () => {
