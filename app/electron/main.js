@@ -451,6 +451,10 @@ app.whenReady().then(async () => {
     );
   });
 
+  ipcMain.handle("ai:ask", (_event, payload) => supabaseService.askAi(payload));
+  ipcMain.handle("ai:threads", (_event, projectId) => supabaseService.listAiThreads(projectId));
+  ipcMain.handle("ai:messages", (_event, threadId) => supabaseService.listAiMessages(threadId));
+
   ipcMain.handle("system:open-external", (_event, url) => shell.openExternal(url));
 
   createWindow();
